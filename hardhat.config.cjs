@@ -1,5 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("@chainlink/contracts");
+require("artifacts/@chainlink/contracts");
 
 
 module.exports = {
