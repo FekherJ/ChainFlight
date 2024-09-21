@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.24;
 
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 
@@ -31,7 +31,7 @@ contract InsurancePolicy is ChainlinkClient {
     }
 
     constructor(address _oracle, bytes32 _jobId, uint256 _fee, address _link) {
-        setChainlinkToken(_link);  // Set the LINK token address
+        _setChainlinkToken(_link);  // Set the LINK token address
         oracle = _oracle;  // Set the Chainlink oracle address
         jobId = _jobId;  // Set the Chainlink job ID for flight data
         fee = _fee;  // Set the Chainlink fee
@@ -55,9 +55,14 @@ contract InsurancePolicy is ChainlinkClient {
         Policy storage policy = policies[policyId];
         require(policy.isActive, "Policy is not active");
 
-        Chainlink.Request memory req = buildChainlinkRequest(jobId, address(this), this.fulfillFlightStatus.selector);
-        req.add("flightNumber", policy.flightNumber);  // Add flight number to the request
-        sendChainlinkRequestTo(oracle, req, fee);  // Send request to Chainlink oracle
+        // Build Chainlink request using the correct method
+        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfillFlightStatus.selector);
+        
+        // Add flight number to the request
+        req._add("flightNumber", policy.flightNumber);
+
+        // Send the Chainlink request to the oracle
+        _sendChainlinkRequestTo(oracle, req, fee);
     }
 
     /**
