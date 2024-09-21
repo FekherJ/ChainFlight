@@ -20,7 +20,11 @@ contract InsurancePolicy is ChainlinkClient {
         string flightNumber;
     }
 
-    Policy[] public policies;
+    // Use a mapping to store policies by a unique policy ID
+    mapping(uint256 => Policy) public policies;
+    
+    // Track the number of policies to generate unique IDs
+    uint256 public policyCount;
 
     event PolicyCreated(uint256 policyId, address insured, uint256 premium, uint256 payoutAmount, string flightNumber);
     event PolicyTriggered(uint256 policyId, string flightNumber, uint256 payoutAmount, uint256 flightStatus);
@@ -32,62 +36,52 @@ contract InsurancePolicy is ChainlinkClient {
 
     constructor(address _oracle, bytes32 _jobId, uint256 _fee, address _link) {
         _setChainlinkToken(_link);  // Set the LINK token address
-        oracle = _oracle;  // Set the Chainlink oracle address
-        jobId = _jobId;  // Set the Chainlink job ID for flight data
-        fee = _fee;  // Set the Chainlink fee
+        oracle = _oracle;           // Set the Chainlink oracle address
+        jobId = _jobId;             // Set the Chainlink job ID for flight data
+        fee = _fee;                 // Set the Chainlink fee
         owner = msg.sender;
     }
 
     /**
      * Create a new insurance policy for a specific flight.
+     * Policies are stored in a mapping with a unique policy ID.
      */
     function createPolicy(address insured, uint256 premium, uint256 payoutAmount, string memory flightNumber) public onlyOwner {
-        policies.push(Policy(insured, premium, payoutAmount, true, flightNumber));
-        uint256 policyId = policies.length - 1;
-        emit PolicyCreated(policyId, insured, premium, payoutAmount, flightNumber);
+        policyCount++; // Increment policy count to get a unique policy ID
+        policies[policyCount] = Policy({
+            insured: insured,
+            premium: premium,
+            payoutAmount: payoutAmount,
+            isActive: true,
+            flightNumber: flightNumber
+        });
+
+        emit PolicyCreated(policyCount, insured, premium, payoutAmount, flightNumber);
     }
 
     /**
-     * Request flight status data from the Chainlink Oracle.
+     * Fetch details of a specific policy by its ID.
      */
-    function requestFlightStatus(uint256 policyId) public onlyOwner {
-        require(policyId < policies.length, "Invalid policy ID");
+    function getPolicy(uint256 policyId) public view returns (Policy memory) {
+        return policies[policyId];
+    }
+
+  /**
+ * Trigger the payout for a policy if the flight is delayed.
+ */
+    function triggerPayout(uint256 policyId, uint256 _flightStatus) public onlyOwner {
         Policy storage policy = policies[policyId];
         require(policy.isActive, "Policy is not active");
 
-        // Build Chainlink request using the correct method
-        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfillFlightStatus.selector);
-        
-        // Add flight number to the request
-        req._add("flightNumber", policy.flightNumber);
-
-        // Send the Chainlink request to the oracle
-        _sendChainlinkRequestTo(oracle, req, fee);
+    // Check the flight status and trigger payout if delayed
+    if (_flightStatus == 2) { // Assuming 2 = delayed
+        // Process payout (simplified for example)
+        payable(policy.insured).transfer(policy.payoutAmount);
+        policy.isActive = false;  // Deactivate policy after payout
     }
 
-    /**
-     * Fulfillment function called by the Chainlink node with the flight status.
-     * 1 = On Time, 2 = Delayed, 3 = Canceled
-     */
-    function fulfillFlightStatus(bytes32 _requestId, uint256 _flightStatus) public recordChainlinkFulfillment(_requestId) {
-        flightStatus = _flightStatus;
-        uint256 policyId = policies.length - 1;  // Assuming the latest policy is being checked
+    emit PolicyTriggered(policyId, policy.flightNumber, policy.payoutAmount, _flightStatus);
+}
 
-        Policy storage policy = policies[policyId];
-        require(policy.isActive, "Policy is no longer active");
-
-        if (_flightStatus == 2) {  // Flight is delayed
-            policy.isActive = false;  // Mark policy as inactive after payout
-            payable(policy.insured).transfer(policy.payoutAmount);  // Payout the insured
-            emit PolicyTriggered(policyId, policy.flightNumber, policy.payoutAmount, _flightStatus);
-        }
-    }
-
-    // Fallback function to allow contract to receive funds
-    receive() external payable {}
-
-    // Withdraw any remaining balance from the contract (Only owner)
-    function withdrawFunds() external onlyOwner {
-        payable(owner).transfer(address(this).balance);
-    }
+    // Additional functions to interact with Chainlink and handle data requests would go here
 }
