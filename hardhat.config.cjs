@@ -1,12 +1,11 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol");
 
 module.exports = {
   solidity: "0.8.24",
   networks: {
     sepolia: {
       url: "https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY", // Replace with your Alchemy Sepolia URL
-      accounts: ["YOUR_PRIVATE_KEY"],  // Add your private key here
+      accounts: ["6fa9e592a125e7a6de0fbce7d11e41de188bffea8dfeb33e1c9648c9e5d7a575"],  // Add your private key here
     },
   },
   etherscan: {
