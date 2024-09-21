@@ -1,7 +1,7 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@chainlink/contracts";
 
-export default {
+module.exports = {
   solidity: "0.8.24",
   networks: {
     sepolia: {

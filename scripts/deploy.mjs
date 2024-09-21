@@ -1,4 +1,5 @@
-import { ethers } from "hardhat";
+const { ethers } = require('hardhat');
+
 
 async function main() {
   const oracle = "ORACLE_ADDRESS";  // Replace with your Chainlink flight data oracle
