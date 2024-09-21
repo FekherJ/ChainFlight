@@ -1,0 +1,7 @@
+POST http://localhost:5000/register	-	OK
+POST http://localhost:5000/insurance/login	-	OK
+GET http://localhost:5000/policies	-	OK
+GET http://localhost:5000/policy/1 	-	OK
+POST http://localhost:5000/policy/create	-	OK
+
+
