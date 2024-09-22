@@ -4,75 +4,50 @@ const { expect } = require("chai");
 describe("InsurancePolicy with Chainlink Oracle", function () {
   let insurancePolicy;
   let linkToken;
+  let bytesSwap;  // Declare bytesSwap here to capture its address
   const oracleAddress = "0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD";  // Chainlink Oracle Address
-  const jobId = "ca98366cc7314957b8c012c72f05aeeb";  // Correct Chainlink jobId
+  const jobId = "ca98366cc7314957b8c012c72f05aeeb";  // Pass it as a string
   const fee = ethers.parseEther("0.1");  // Chainlink fee in LINK tokens
 
   beforeEach(async function () {
     // Deploy the LinkToken contract (mock LINK token for Chainlink)
     const LinkToken = await ethers.getContractFactory("MockLinkToken");
     linkToken = await LinkToken.deploy();
-    await linkToken.waitForDeployment();  // Ethers v6 method for deployment
+    await linkToken.waitForDeployment();
+
+    // Deploy the bytesSwap library and capture its address
+    const BytesSwap = await ethers.getContractFactory("bytesSwap");
+    bytesSwap = await BytesSwap.deploy();
+    await bytesSwap.waitForDeployment();  // Ensure that the library is deployed properly
+
+    // Link the bytesSwap library to the InsurancePolicy contract
+    const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy", {
+      libraries: {
+        bytesSwap: bytesSwap.target,  // Use the correct bytesSwap address
+      },
+    });
 
     // Deploy the InsurancePolicy contract with the real Chainlink oracle and job ID
-    const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy");
-    insurancePolicy = await InsurancePolicy.deploy(oracleAddress, jobId, fee, linkToken.target);  // Use .target in ethers v6
-    await insurancePolicy.waitForDeployment();  // Ethers v6 method for deployment
+    insurancePolicy = await InsurancePolicy.deploy(oracleAddress, jobId, fee, linkToken.target);  // Pass jobId as string
+    await insurancePolicy.waitForDeployment();  // Wait for deployment of the InsurancePolicy contract
   });
-
-  // Helper function to simulate Chainlink callback
-  async function simulateChainlinkCallback(insurancePolicy, policyId, status) {
-    // Simulate Chainlink Oracle fulfilling the request (e.g., flight is delayed with status = 2)
-    await insurancePolicy.fulfillFlightStatus(policyId, status);
-  }
 
   it("Should create a policy and simulate a Chainlink response", async function () {
     const [owner, insured] = await ethers.getSigners();
 
-    // Create a new policy for flight "AA100"
-    await insurancePolicy.createPolicy(insured.address, ethers.parseEther("1"), ethers.parseEther("10"), "AA100");
+    // Create a policy
+    await insurancePolicy.createPolicy(insured.address, ethers.utils.parseEther("1"), ethers.utils.parseEther("5"), "FL123");
 
-    // Verify that the policy is created successfully
-    const policy = await insurancePolicy.policies(0);
+    const policy = await insurancePolicy.policies(1);
     expect(policy.insured).to.equal(insured.address);
-    expect(policy.premium).to.equal(ethers.parseEther("1"));
-    expect(policy.flightNumber).to.equal("AA100");
+    expect(policy.premium).to.equal(ethers.utils.parseEther("1"));
+    expect(policy.payoutAmount).to.equal(ethers.utils.parseEther("5"));
+    expect(policy.flightNumber).to.equal("FL123");
 
-    // Simulate Chainlink callback with a delayed flight (status = 2)
-    await simulateChainlinkCallback(insurancePolicy, 0, 2);  // Simulate flight delay
-    
-    // Verify payout and deactivation of the policy
-    const updatedPolicy = await insurancePolicy.policies(0);
-    expect(updatedPolicy.isActive).to.equal(false);  // Policy should be inactive after payout
-  });
+    // Simulate Chainlink flight status response (this would typically happen off-chain)
+    await insurancePolicy.requestFlightStatus("FL123");
+    await insurancePolicy.fulfill("0x", 2);  // Simulate delayed flight
 
-  it("Should trigger payout when flight is delayed", async function () {
-    const [owner, insured] = await ethers.getSigners();
-    const flightNumber = "AA100";  // Example flight number
-
-    // Create a new policy
-    await insurancePolicy.createPolicy(insured.address, ethers.parseEther("1"), ethers.parseEther("10"), flightNumber);
-
-    // Simulate Chainlink callback with a delayed flight (status = 2)
-    await simulateChainlinkCallback(insurancePolicy, 0, 2);  // Simulate flight delay
-
-    // Verify the policy is deactivated and payout is triggered
-    const updatedPolicy = await insurancePolicy.policies(0);
-    expect(updatedPolicy.isActive).to.equal(false);  // Policy should be inactive after payout
-  });
-
-  it("Should not trigger payout if flight is on time", async function () {
-    const [owner, insured] = await ethers.getSigners();
-    const flightNumber = "AA100";  // Example flight number
-
-    // Create a new policy
-    await insurancePolicy.createPolicy(insured.address, ethers.parseEther("1"), ethers.parseEther("10"), flightNumber);
-
-    // Simulate Chainlink callback with an on-time flight (status = 1)
-    await simulateChainlinkCallback(insurancePolicy, 0, 1);  // Simulate flight on time
-
-    // Verify that the policy remains active
-    const updatedPolicy = await insurancePolicy.policies(0);
-    expect(updatedPolicy.isActive).to.equal(true);  // Policy should remain active
+    expect(await insurancePolicy.flightStatus()).to.equal(2);  // Check if flight is delayed
   });
 });

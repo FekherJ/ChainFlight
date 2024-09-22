@@ -2,9 +2,11 @@
 pragma solidity ^0.8.24;
 
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "./bytesSwap.sol";  // Import the bytesSwap library
 
 contract InsurancePolicy is ChainlinkClient {
     using Chainlink for Chainlink.Request;
+    using bytesSwap for string;  // Use the bytesSwap library
 
     uint256 public flightStatus;  // 1 = on time, 2 = delayed, etc.
     address private oracle;
@@ -30,58 +32,41 @@ contract InsurancePolicy is ChainlinkClient {
     event PolicyTriggered(uint256 policyId, string flightNumber, uint256 payoutAmount, uint256 flightStatus);
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not the contract owner");
+        require(msg.sender == owner, "Not the owner");
         _;
     }
 
-    constructor(address _oracle, bytes32 _jobId, uint256 _fee, address _link) {
-        _setChainlinkToken(_link);  // Set the LINK token address
-        oracle = _oracle;           // Set the Chainlink oracle address
-        jobId = _jobId;             // Set the Chainlink job ID for flight data
-        fee = _fee;                 // Set the Chainlink fee
+    constructor(string memory _jobId) {
+        jobId = _jobId.stringToBytes32();  // Convert string to bytes32 using the library
         owner = msg.sender;
     }
 
-    /**
-     * Create a new insurance policy for a specific flight.
-     * Policies are stored in a mapping with a unique policy ID.
-     */
-    function createPolicy(address insured, uint256 premium, uint256 payoutAmount, string memory flightNumber) public onlyOwner {
-        policyCount++; // Increment policy count to get a unique policy ID
+    function createPolicy(
+        address _insured, 
+        uint256 _premium, 
+        uint256 _payoutAmount, 
+        string memory _flightNumber
+    ) public onlyOwner {
+        policyCount++;
         policies[policyCount] = Policy({
-            insured: insured,
-            premium: premium,
-            payoutAmount: payoutAmount,
+            insured: _insured,
+            premium: _premium,
+            payoutAmount: _payoutAmount,
             isActive: true,
-            flightNumber: flightNumber
+            flightNumber: _flightNumber
         });
 
-        emit PolicyCreated(policyCount, insured, premium, payoutAmount, flightNumber);
+        emit PolicyCreated(policyCount, _insured, _premium, _payoutAmount, _flightNumber);
     }
 
-    /**
-     * Fetch details of a specific policy by its ID.
-     */
-    function getPolicy(uint256 policyId) public view returns (Policy memory) {
-        return policies[policyId];
+    function requestFlightStatus(string memory _flightNumber) public {
+        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+        req._add("flightNumber", _flightNumber);
+        _sendChainlinkRequestTo(oracle, req, fee);
     }
 
-  /**
- * Trigger the payout for a policy if the flight is delayed.
- */
-    function triggerPayout(uint256 policyId, uint256 _flightStatus) public onlyOwner {
-        Policy storage policy = policies[policyId];
-        require(policy.isActive, "Policy is not active");
-
-    // Check the flight status and trigger payout if delayed
-    if (_flightStatus == 2) { // Assuming 2 = delayed
-        // Process payout (simplified for example)
-        payable(policy.insured).transfer(policy.payoutAmount);
-        policy.isActive = false;  // Deactivate policy after payout
+    function fulfill(bytes32 _requestId, uint256 _flightStatus) public recordChainlinkFulfillment(_requestId) {
+        flightStatus = _flightStatus;
+        // Here you could trigger payout for delayed flights
     }
-
-    emit PolicyTriggered(policyId, policy.flightNumber, policy.payoutAmount, _flightStatus);
-}
-
-    // Additional functions to interact with Chainlink and handle data requests would go here
 }
