@@ -2,9 +2,11 @@
 
 A decentralized flight delay insurance platform built on Ethereum, using smart contracts and Chainlink oracles to automate policy management and payouts.
 
+
 📄 Project Overview
 
 This platform offers decentralized, transparent insurance policies for flight delays. Smart contracts automatically trigger payouts to policyholders based on real-time flight status data retrieved from Chainlink oracles.
+
 
 🔑 Key Features
 
@@ -12,6 +14,7 @@ Blockchain-Powered Insurance: Policies are managed through smart contracts, ensu
 Automated Payouts: If a flight delay is detected, payouts are triggered without manual intervention.
 Real-Time Data: Flight status is fetched through Chainlink oracles, offering reliable external data integration.
 Flexible Policy Creation: New insurance policies can be easily created, tracked, and managed on-chain.
+
 
 📂 Project Structure
 
@@ -65,6 +68,7 @@ Compile the smart contracts:
 
 🛠️ Testing
 
+
 You can run the smart contract tests using Hardhat's local node:
 
 Start a local blockchain:
@@ -74,6 +78,7 @@ Start a local blockchain:
 
 📡 Chainlink Oracle Integration
 
+
 This project integrates Chainlink oracles to retrieve real-time flight delay data. The oracle fetches flight status, and if a delay is detected, the contract triggers automatic payouts to the insured user.
 
 Flight Status Codes: The flight data includes codes where 1 means "on-time" and 2 means "delayed".
@@ -82,6 +87,7 @@ Automated Payouts: If a flight is delayed, the policyholder receives the payout 
 
 
 💻 API Testing
+
 
 The project includes a Postman collection for easy API testing. Import postman_tests.txt into Postman to test the policy creation and other endpoints.
 
@@ -96,10 +102,12 @@ Improved Oracle Data: Enhanced data handling with more precise and diversified o
 
 📝 License
 
+
 This project is licensed under the MIT License. See the LICENSE file for details.
 
 
 👨‍💻 Contributing
+
 
 Pull requests and contributions are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
