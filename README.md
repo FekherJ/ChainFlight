@@ -93,12 +93,15 @@ More Insurance Types: Expansion to offer other types of insurance (e.g., health,
 
 Improved Oracle Data: Enhanced data handling with more precise and diversified oracles.
 
+
 📝 License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
+
 
 👨‍💻 Contributing
 
 Pull requests and contributions are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
 This version should be clear, concise, and easy to follow for anyone browsing your GitHub repository. It provides a solid overview of the project, instructions for setup, and highlights the key functionalities and future improvements.
+
