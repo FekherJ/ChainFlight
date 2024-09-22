@@ -5,9 +5,7 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
   let insurancePolicy;
   let linkToken;
   let bytesSwap;  // Declare bytesSwap here to capture its address
-  const oracleAddress = "0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD";  // Chainlink Oracle Address
   const jobId = "ca98366cc7314957b8c012c72f05aeeb";  // Pass it as a string
-  const fee = ethers.parseEther("0.1");  // Chainlink fee in LINK tokens
 
   beforeEach(async function () {
     // Deploy the LinkToken contract (mock LINK token for Chainlink)
@@ -27,8 +25,8 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
       },
     });
 
-    // Deploy the InsurancePolicy contract with the real Chainlink oracle and job ID
-    insurancePolicy = await InsurancePolicy.deploy(oracleAddress, jobId, fee, linkToken.target);  // Pass jobId as string
+    // Deploy the InsurancePolicy contract with only the job ID
+    insurancePolicy = await InsurancePolicy.deploy(jobId);  // Pass only jobId as string
     await insurancePolicy.waitForDeployment();  // Wait for deployment of the InsurancePolicy contract
   });
 
@@ -36,12 +34,12 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     const [owner, insured] = await ethers.getSigners();
 
     // Create a policy
-    await insurancePolicy.createPolicy(insured.address, ethers.utils.parseEther("1"), ethers.utils.parseEther("5"), "FL123");
+    await insurancePolicy.createPolicy(insured.address, ethers.parseEther("1"), ethers.parseEther("5"), "FL123");
 
     const policy = await insurancePolicy.policies(1);
     expect(policy.insured).to.equal(insured.address);
-    expect(policy.premium).to.equal(ethers.utils.parseEther("1"));
-    expect(policy.payoutAmount).to.equal(ethers.utils.parseEther("5"));
+    expect(policy.premium).to.equal(ethers.parseEther("1"));
+    expect(policy.payoutAmount).to.equal(ethers.parseEther("5"));
     expect(policy.flightNumber).to.equal("FL123");
 
     // Simulate Chainlink flight status response (this would typically happen off-chain)

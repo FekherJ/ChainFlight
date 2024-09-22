@@ -67,6 +67,5 @@ contract InsurancePolicy is ChainlinkClient {
 
     function fulfill(bytes32 _requestId, uint256 _flightStatus) public recordChainlinkFulfillment(_requestId) {
         flightStatus = _flightStatus;
-        // Here you could trigger payout for delayed flights
     }
 }
