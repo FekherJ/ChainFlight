@@ -8,22 +8,28 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
   let mockOracle;  // Mock oracle for testing
   const jobId = "ca98366cc7314957b8c012c72f05aeeb";  // Pass it as a string
   const fee = ethers.parseEther("0.1");
+  
 
   beforeEach(async function () {
     // Deploy the mock LINK token
     const LinkToken = await ethers.getContractFactory("MockLinkToken");
     linkToken = await LinkToken.deploy();
     await linkToken.waitForDeployment();
+    console.log("LinkToken deployed at:", linkToken.target);
+
 
     // Deploy the bytesSwap library and capture its address
     const BytesSwap = await ethers.getContractFactory("bytesSwap");
     bytesSwap = await BytesSwap.deploy();
     await bytesSwap.waitForDeployment();  // Ensure that the library is deployed properly
+    console.log("bytesSwap deployed at:", bytesSwap.target);
 
     // Deploy the Mock Oracle
     const MockOracle = await ethers.getContractFactory("MockOracle");
     mockOracle = await MockOracle.deploy(linkToken.address);
     await mockOracle.waitForDeployment();
+    console.log("MockOracle deployed at:", mockOracle.target);
+
 
     // Link the bytesSwap library to the InsurancePolicy contract
     const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy", {
@@ -31,10 +37,14 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
         bytesSwap: bytesSwap.target,  // Use the correct bytesSwap address
       },
     });
+    
+
 
     // Deploy the InsurancePolicy contract with only the job ID
     insurancePolicy = await InsurancePolicy.deploy(jobId);  // Pass only jobId as string
     await insurancePolicy.waitForDeployment();  // Wait for deployment of the InsurancePolicy contract
+    console.log("insurancePolicy deployed at:", insurancePolicy.target);
+
 
     // Fund the InsurancePolicy contract with LINK tokens for making the request
     await linkToken.transfer(insurancePolicy.target, ethers.parseEther("1"));

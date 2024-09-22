@@ -18,25 +18,13 @@ contract MockOracle {
         bytes data
     );
 
-    constructor(address _linkToken) {
-        linkToken = LinkTokenInterface(_linkToken);
+    // Add a constructor to initialize linkToken if necessary
+    constructor(address _linkTokenAddress) {
+        linkToken = LinkTokenInterface(_linkTokenAddress);
     }
 
-    function fulfillOracleRequest(
-        bytes32 requestId,
-        uint256 payment,
-        address callbackAddress,
-        bytes4 callbackFunctionId,
-        //uint256 expiration,  // incomment if needed
-        bytes32 data
-    ) public returns (bool) {
-        require(linkToken.transfer(msg.sender, payment), "Unable to transfer LINK tokens");
-
-        // Simulate fulfilling the request by calling the callback function on the contract
-        (bool success, ) = callbackAddress.call(
-            abi.encodeWithSelector(callbackFunctionId, requestId, data)
-        );
-
-        return success;
+    function fulfillOracleRequest(bytes32 _requestId) public {
+        // Mock function to simulate Chainlink response
+        emit OracleRequest(_requestId, msg.sender, bytes32(0), address(this), bytes4(0), block.timestamp, 0, "");
     }
 }
