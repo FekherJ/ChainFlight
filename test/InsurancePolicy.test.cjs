@@ -5,10 +5,12 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
   let insurancePolicy;
   let linkToken;
   let bytesSwap;  // Declare bytesSwap here to capture its address
+  let mockOracle;  // Mock oracle for testing
   const jobId = "ca98366cc7314957b8c012c72f05aeeb";  // Pass it as a string
+  const fee = ethers.parseEther("0.1");
 
   beforeEach(async function () {
-    // Deploy the LinkToken contract (mock LINK token for Chainlink)
+    // Deploy the mock LINK token
     const LinkToken = await ethers.getContractFactory("MockLinkToken");
     linkToken = await LinkToken.deploy();
     await linkToken.waitForDeployment();
@@ -17,6 +19,11 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     const BytesSwap = await ethers.getContractFactory("bytesSwap");
     bytesSwap = await BytesSwap.deploy();
     await bytesSwap.waitForDeployment();  // Ensure that the library is deployed properly
+
+    // Deploy the Mock Oracle
+    const MockOracle = await ethers.getContractFactory("MockOracle");
+    mockOracle = await MockOracle.deploy(linkToken.address);
+    await mockOracle.waitForDeployment();
 
     // Link the bytesSwap library to the InsurancePolicy contract
     const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy", {
@@ -28,13 +35,21 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     // Deploy the InsurancePolicy contract with only the job ID
     insurancePolicy = await InsurancePolicy.deploy(jobId);  // Pass only jobId as string
     await insurancePolicy.waitForDeployment();  // Wait for deployment of the InsurancePolicy contract
+
+    // Fund the InsurancePolicy contract with LINK tokens for making the request
+    await linkToken.transfer(insurancePolicy.target, ethers.parseEther("1"));
   });
 
   it("Should create a policy and simulate a Chainlink response", async function () {
     const [owner, insured] = await ethers.getSigners();
 
     // Create a policy
-    await insurancePolicy.createPolicy(insured.address, ethers.parseEther("1"), ethers.parseEther("5"), "FL123");
+    await insurancePolicy.createPolicy(
+      insured.address,
+      ethers.parseEther("1"),  // Fix: ensure proper reference to ethers.utils.parseEther
+      ethers.parseEther("5"),
+      "FL123"
+    );
 
     const policy = await insurancePolicy.policies(1);
     expect(policy.insured).to.equal(insured.address);
