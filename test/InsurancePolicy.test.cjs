@@ -80,8 +80,6 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     expect(policy.payoutAmount).to.equal(ethers.parseEther("5"));
     expect(policy.flightNumber).to.equal("FL123");
 
-   
-
 
     // Simulate Chainlink flight status response (this would typically happen off-chain)
     await insurancePolicy.requestFlightStatus("FL123");
