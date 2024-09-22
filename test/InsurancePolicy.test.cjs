@@ -46,7 +46,10 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     );
     await insurancePolicy.waitForDeployment();
 
-    // Console logs
+    // Transfer LINK tokens to the InsurancePolicy contract to pay for the oracle request
+    await linkToken.transfer(insurancePolicy.target, ethers.parseEther("10"));  // Transfer 10 LINK tokens
+
+    // Console logs for deployment addresses
     console.log("LinkToken deployed at:", linkToken.target);
     console.log("bytesSwap deployed at:", bytesSwap.target);
     console.log("MockOracle deployed at:", mockOracle.target);
@@ -70,8 +73,13 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     expect(policy.payoutAmount).to.equal(ethers.parseEther("5"));
     expect(policy.flightNumber).to.equal("FL123");
 
-    // Simulate Chainlink flight status response
-    const tx = await insurancePolicy.requestFlightStatus("FL123");
+    // Transfer LINK and simulate flight status request (correct encoding)
+    const tx = await linkToken.transferAndCall(
+      insurancePolicy.address,
+      ethers.parseEther("0.1"),
+      ethers.utils.AbiCoder.encode(["flight"], ["FL123"]) // Correct encoding of the flight number
+    );
+
     const receipt = await tx.wait();
 
     // Retrieve the event emitted by Chainlink (usually RequestId is emitted)

@@ -31,6 +31,7 @@ contract InsurancePolicy is ChainlinkClient {
     event PolicyCreated(uint256 policyId, address insured, uint256 premium, uint256 payoutAmount, string flightNumber);
     event PolicyTriggered(uint256 policyId, string flightNumber, uint256 payoutAmount, uint256 flightStatus);
     event FlightStatusUpdated(uint256 flightStatus);  // Event for logging the updated flight status
+    event LinkReceived(string flightNumber);  // Event for logging the LINK transfer and Chainlink request initiation
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Not the owner");
@@ -38,7 +39,7 @@ contract InsurancePolicy is ChainlinkClient {
     }
 
     constructor(address _oracle, string memory _jobId, uint256 _fee, address _link) {
-        _setChainlinkToken(_link);  // Updated with underscore
+        _setChainlinkToken(_link);  // Use correct Chainlink method to set LINK token address
         oracle = _oracle;
         jobId = _jobId.stringToBytes32();  // Convert string to bytes32 using the library
         fee = _fee;
@@ -61,9 +62,9 @@ contract InsurancePolicy is ChainlinkClient {
 
     // Function to request flight status from Chainlink oracle
     function requestFlightStatus(string memory _flightNumber) public returns (bytes32 requestId) {
-        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector);  // Updated with underscore
-        req._add("flight", _flightNumber);  // Add the flight number to the request
-        return _sendChainlinkRequestTo(oracle, req, fee);  // Updated with underscore
+        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector);  
+        req._add("flight", _flightNumber);  // Correctly use the add method to add the flight number
+        return _sendChainlinkRequestTo(oracle, req, fee);  // Send the request using the Chainlink oracle
     }
 
     // Fulfill function to handle the response from the oracle
@@ -76,11 +77,25 @@ contract InsurancePolicy is ChainlinkClient {
     function triggerPolicy(uint256 _policyId) public {
         Policy storage policy = policies[_policyId];
         require(policy.isActive, "Policy is not active");
-        require(flightStatus == 2, "Flight is not delayed");  // Trigger the policy only if flight is delayed
+        require(flightStatus == 2, "Flight is not delayed");  // Trigger the policy only if the flight is delayed
 
         policy.isActive = false;  // Deactivate the policy after it is triggered
 
-        // Emit event that the policy has been triggered
         emit PolicyTriggered(_policyId, policy.flightNumber, policy.payoutAmount, flightStatus);
     }
+
+   function onTokenTransfer(address /*sender*/, uint256 amount, bytes calldata data) public {
+    // Ensure enough LINK is transferred to cover the request
+    require(amount >= fee, "Not enough LINK");
+
+    // Decode the flight number from the provided data
+    (string memory flightNumber) = abi.decode(data, (string));
+
+    // Emit event when LINK is received and the flight status request is initiated
+    emit LinkReceived(flightNumber);
+
+    // Call the function to request the flight status
+    requestFlightStatus(flightNumber);
+}
+
 }
