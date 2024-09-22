@@ -74,6 +74,8 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     console.log("insurancePolicy deployed at:", insurancePolicy.target);
     // ALL OK AT THIS POINT
 
+    // ISSUES BELOW
+
     const policy = await insurancePolicy.policies(1);
     expect(policy.insured).to.equal(insured.address);
     expect(policy.premium).to.equal(ethers.parseEther("1"));
