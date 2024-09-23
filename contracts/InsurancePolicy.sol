@@ -26,41 +26,48 @@ contract InsurancePolicy {
     event PolicyCreated(uint256 policyId, address insured, uint256 premium, uint256 payoutAmount, string flightNumber);
     event PayoutTriggered(uint256 policyId, address insured, uint256 payoutAmount);
 
+    // Constructor to initialize the contract with the Chainlink data feed address
     constructor(address _flightDelayFeed) {
         flightDelayFeed = AggregatorV3Interface(_flightDelayFeed);
         owner = msg.sender;
     }
 
-    // Create an insurance policy
-    function createPolicy(address insured, uint256 premium, uint256 payoutAmount, string memory flightNumber, uint256 delayThreshold) public {
+    // Function to create a new insurance policy
+    function createPolicy(
+        address insured,
+        uint256 premium,
+        uint256 payoutAmount,
+        string memory flightNumber,
+        uint256 delayThreshold
+    ) public {
         policyCount++;
         policies[policyCount] = Policy(insured, premium, payoutAmount, true, flightNumber, delayThreshold);
         emit PolicyCreated(policyCount, insured, premium, payoutAmount, flightNumber);
     }
 
-    // Fetch the latest flight delay from Chainlink
+    // Function to fetch the latest flight delay from Chainlink data feed
     function getLatestFlightDelay() public view returns (int256) {
         (, int256 latestDelay, , , ) = flightDelayFeed.latestRoundData();
         return latestDelay;
     }
 
-    // Trigger payout if delay threshold is exceeded
+    // Function to trigger the insurance payout if delay threshold is exceeded
     function triggerPayout(uint256 policyId) public {
         Policy storage policy = policies[policyId];
         require(policy.isActive, "Policy is not active");
 
-        // Fetch latest delay from Chainlink
+        // Fetch the latest delay from Chainlink
         int256 latestDelay = getLatestFlightDelay();
 
-        // Check if delay exceeds the threshold
+        // Check if the flight delay exceeds the policy's delay threshold
         if (uint256(latestDelay) >= policy.delayThreshold) {
             uint256 payoutAmount = policy.payoutAmount;
-            policy.isActive = false;
-            payable(policy.insured).transfer(payoutAmount);
+            policy.isActive = false;  // Deactivate the policy
+            payable(policy.insured).transfer(payoutAmount);  // Process payout to the insured
             emit PayoutTriggered(policyId, policy.insured, payoutAmount);
         }
     }
 
-    // Fallback function to accept payments
+    // Fallback function to receive payments
     receive() external payable {}
 }
