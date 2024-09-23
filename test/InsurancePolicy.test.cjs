@@ -5,23 +5,26 @@ describe("InsurancePolicy with Chainlink Data Feed", function () {
   let insurancePolicy;
   let mockAggregator; // Mock Chainlink Aggregator for testing flight delay data
   let deployer, insured;
-  
+
   const delayThreshold = 120; // Set a delay threshold of 120 minutes for testing
 
   beforeEach(async function () {
     // Get signers
     [deployer, insured] = await ethers.getSigners();
-  
+
     // Deploy the Mock Aggregator for flight delay feed
     const MockAggregator = await ethers.getContractFactory("MockV3Aggregator");
     mockAggregator = await MockAggregator.deploy(8, ethers.parseUnits("150", 8));  // Mock delay of 150 minutes
-  
+
+    // Ensure the mock aggregator is deployed correctly
+    console.log("Mock Aggregator Address:", mockAggregator.address);
+    expect(mockAggregator.address).to.not.be.null;
+
     // Deploy the InsurancePolicy contract with the mock aggregator
     const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy");
     insurancePolicy = await InsurancePolicy.deploy(mockAggregator.address);
-    await insurancePolicy.deployed();  // Only the insurance policy requires .deployed()
+    await insurancePolicy.deployed();  // Ensure this contract is deployed
   });
-  
 
   it("Should create a policy and emit PolicyCreated event", async function () {
     const premium = ethers.parseEther("1");  // 1 ETH premium
