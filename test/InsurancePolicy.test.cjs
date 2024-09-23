@@ -72,12 +72,12 @@ describe("InsurancePolicy with Chainlink Oracle", function () {
     expect(policy.premium).to.equal(ethers.parseEther("1"));
     expect(policy.payoutAmount).to.equal(ethers.parseEther("5"));
     expect(policy.flightNumber).to.equal("FL123");
-
+    
     // Transfer LINK and simulate flight status request (correct encoding)
     const tx = await linkToken.transferAndCall(
       insurancePolicy.address,
       ethers.parseEther("0.1"),
-      ethers.utils.AbiCoder.encode(["flight"], ["FL123"]) // Correct encoding of the flight number
+      ethers.utils.formatBytes32String("FL123") // Correct encoding of the flight number
     );
 
     const receipt = await tx.wait();
