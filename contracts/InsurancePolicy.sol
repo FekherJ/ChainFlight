@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import "./bytesSwap.sol";  // Import the bytesSwap library
+// Use this import path to access the Chainlink AggregatorV3Interface
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";  // Correct Chainlink interface
+
+import "contracts/MockV3Aggregator.sol";  // Mock for testing
+
+import "./bytesSwap.sol";  // Import your bytesSwap library
 
 contract InsurancePolicy {
-    using bytesSwap for string;  // Use the bytesSwap library
+    using bytesSwap for string;
 
     uint256 public flightDelay;  // Flight delay in minutes
     address public owner;

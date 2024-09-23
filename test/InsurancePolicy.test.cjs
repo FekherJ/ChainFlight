@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
 
-describe("InsurancePolicy with Chainlink Data Feed", function () {
+describe("InsurancePolicy with MockV3Aggregator", function () {
   let insurancePolicy;
   let mockAggregator;
   let deployer, insured;
@@ -9,22 +9,22 @@ describe("InsurancePolicy with Chainlink Data Feed", function () {
   const delayThreshold = 120; // Set a delay threshold of 120 minutes for testing
 
   beforeEach(async function () {
-    // Get signers
     [deployer, insured] = await ethers.getSigners();
 
-    // Deploy the MockV3Aggregator contract
+    // Deploy the MockV3Aggregator contract directly
     const MockAggregator = await ethers.getContractFactory("MockV3Aggregator");
+
+    // Deploy the mock aggregator with 8 decimals and an initial value of 150
     mockAggregator = await MockAggregator.deploy(8, ethers.parseUnits("150", 8));  // Mock delay of 150 minutes
-    await mockAggregator.deployed();  // Ensure mock aggregator is deployed
 
     // Check the mock aggregator address
     console.log("Mock Aggregator Address:", mockAggregator.address);
-    expect(mockAggregator.address).to.not.be.null;
+    expect(mockAggregator.address).to.not.be.null;  // Ensure it's not null
 
-    // Deploy the InsurancePolicy contract with the mock aggregator's address
+    // Deploy the InsurancePolicy contract using the mock aggregator
     const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy");
     insurancePolicy = await InsurancePolicy.deploy(mockAggregator.address);
-    await insurancePolicy.deployed();  // Ensure the InsurancePolicy contract is deployed
+    await insurancePolicy.deployed();
   });
 
   it("Should create a policy and emit PolicyCreated event", async function () {
@@ -49,7 +49,7 @@ describe("InsurancePolicy with Chainlink Data Feed", function () {
     // Create a policy
     await insurancePolicy.createPolicy(insured.address, premium, payoutAmount, "FL123", delayThreshold);
 
-    // Fetch the latest delay from Chainlink
+    // Fetch the latest delay from the mock aggregator
     const latestDelay = await insurancePolicy.getLatestFlightDelay();
     expect(latestDelay).to.equal(150);  // Ensure mock delay is set to 150 minutes
 
@@ -69,7 +69,7 @@ describe("InsurancePolicy with Chainlink Data Feed", function () {
     // Create a policy with a higher threshold of 180 minutes
     await insurancePolicy.createPolicy(insured.address, premium, payoutAmount, "FL124", 180);
 
-    // Trigger payout should fail since the delay is 150 minutes (below the threshold)
+    // Attempt to trigger payout; should fail since the delay is 150 minutes (below the threshold)
     await expect(insurancePolicy.triggerPayout(1)).to.be.revertedWith("Policy is not eligible for payout");
   });
 });
