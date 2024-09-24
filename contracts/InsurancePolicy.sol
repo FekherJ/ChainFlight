@@ -26,6 +26,8 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
 
     event PolicyCreated(uint256 policyId, address policyHolder, uint256 premiumAmount);
     event ClaimPaid(uint256 policyId, address policyHolder, uint256 payoutAmount);
+    event DataReceived(bytes32 indexed requestId, uint256 insuranceRate);
+
 
     
     constructor(
@@ -78,6 +80,34 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
 
         emit ClaimPaid(_policyId, policy.policyHolder, policy.payoutAmount);
     }
+
+
+
+    // Create a Chainlink request to fetch data from an external API
+    function requestInsuranceData(string memory apiEndpoint) public returns (bytes32 requestId) {           
+        
+        Chainlink.Request memory request = _buildChainlinkRequest(jobId, address(this), this.fulfillInsuranceDataRequest.selector);
+    
+        // Add the GET request URL and any additional parameters required by the API
+        request._add("get", apiEndpoint);   // 'get' adds the URL for the API
+    
+        // Add the path to the specific data point within the API response JSON
+        // For example, if you need to extract "insurance_rate" from {"data": {"insurance_rate": 5}}
+        request._add("path", "data.insurance_rate");  // Adjust 'path' based on API's response format
+
+        return _sendChainlinkRequestTo(oracle, request, fee);   // Send the request to the oracle
+    }
+
+
+
+    // Callback function that Chainlink oracle will call with the response
+    function fulfillInsuranceDataRequest(bytes32 _requestId, uint256 _insuranceRate) public recordChainlinkFulfillment(_requestId) {
+        // Handle the received data, for example storing the insurance rate
+        _insuranceRate = _insuranceRate;  // Storing the fetched insurance rate
+        emit DataReceived(_requestId, _insuranceRate);
+    }
+
+
 
     function uint2str(uint256 _i) internal pure returns (string memory) {
         if (_i == 0) {
