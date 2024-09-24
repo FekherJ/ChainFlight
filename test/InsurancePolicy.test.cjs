@@ -21,7 +21,7 @@ describe("InsurancePolicy with MockV3Aggregator", function () {
     await mockAggregator.waitForDeployment();
 
     // Check the mock aggregator address
-    console.log("Mock Aggregator Address:", mockAggregator.target); // use mockAggregator.target for ethers v6
+    console.log("Mock Aggregator Address:", mockAggregator.target); // for ethers.js v6
     expect(mockAggregator.target).to.not.be.null; // Ensure it's not null
 
     // Deploy the InsurancePolicy contract using the mock aggregator address
@@ -34,6 +34,7 @@ describe("InsurancePolicy with MockV3Aggregator", function () {
     const premium = ethers.parseEther("1"); // 1 ETH premium
     const payoutAmount = ethers.parseEther("10"); // 10 ETH payout
 
+    // Expect the createPolicy call to emit the PolicyCreated event
     await expect(
       insurancePolicy.createPolicy(insured.address, premium, payoutAmount, "FL123", delayThreshold)
     ).to.emit(insurancePolicy, "PolicyCreated")
@@ -49,9 +50,11 @@ describe("InsurancePolicy with MockV3Aggregator", function () {
 
     // Fetch the latest delay from the mock aggregator
     const latestDelay = await insurancePolicy.getLatestFlightDelay();
-    expect(latestDelay).to.equal(ethers.parseUnits("150", 8)); // Compare with correct format
 
-    // Trigger payout if the delay exceeds the threshold
+    // Ensure that the delay returned by the mock aggregator is correct (150 in mock)
+    expect(latestDelay).to.equal(ethers.parseUnits("150", 8)); // Mock value
+
+    // Now, trigger payout if the delay exceeds the threshold
     await expect(insurancePolicy.triggerPayout(1))
       .to.emit(insurancePolicy, "PayoutTriggered")
       .withArgs(1, insured.address, payoutAmount);

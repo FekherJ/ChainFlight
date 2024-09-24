@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // Use this import path to access the Chainlink AggregatorV3Interface
- import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";  // Correct Chainlink interface
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";  // Correct Chainlink interface
 
 import "contracts/MockV3Aggregator.sol";  // Mock for testing
 
