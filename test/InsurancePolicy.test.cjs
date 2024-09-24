@@ -28,6 +28,12 @@ describe("InsurancePolicy with MockV3Aggregator", function () {
     const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy");
     insurancePolicy = await InsurancePolicy.deploy(mockAggregator.target); // pass target address here
     await insurancePolicy.waitForDeployment();
+    
+    // Fund the contract with 10 ETH to cover payouts
+    await deployer.sendTransaction({
+      to: insurancePolicy.target,  // Use the contract address
+      value: ethers.parseEther("10") // Fund the contract with 10 ETH
+    });
   });
 
   it("Should create a policy and emit PolicyCreated event", async function () {

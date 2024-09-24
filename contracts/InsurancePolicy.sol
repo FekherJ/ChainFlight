@@ -62,11 +62,13 @@ contract InsurancePolicy {
 
         // Fetch the latest delay from Chainlink
         int256 latestDelay = getLatestFlightDelay();
+        require(latestDelay >= 0, "Negative delay received from oracle");
 
         // Check if the flight delay exceeds the policy's delay threshold
         if (uint256(latestDelay) >= policy.delayThreshold) {
             uint256 payoutAmount = policy.payoutAmount;
             policy.isActive = false;  // Deactivate the policy
+            require(address(this).balance >= payoutAmount, "Not enough contract balance");
             payable(policy.insured).transfer(payoutAmount);  // Process payout to the insured
             emit PayoutTriggered(policyId, policy.insured, payoutAmount);
         }
