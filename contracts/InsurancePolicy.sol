@@ -1,79 +1,56 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
-// Use this import path to access the Chainlink AggregatorV3Interface
-import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";  // Correct Chainlink interface
+import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "contracts/MockV3Aggregator.sol";  // Mock for testing
+contract InsurancePolicy is ChainlinkClient, Ownable {
+    using Chainlink for Chainlink.Request;
 
-import "./bytesSwap.sol";  // Import your bytesSwap library
+    uint256 public flightDelay;
+    bytes32 private jobId;
+    uint256 private fee;
+    address private oracle;
+    string private apiKey;
 
-contract InsurancePolicy {
-    using bytesSwap for string;
+    event FlightDelayUpdated(uint256 delay);
 
-    uint256 public flightDelay;  // Flight delay in minutes
-    address public owner;
-    AggregatorV3Interface internal flightDelayFeed;  // Chainlink data feed for flight delay
-
-    struct Policy {
-        address insured;
-        uint256 premium;
-        uint256 payoutAmount;
-        bool isActive;
-        string flightNumber;
-        uint256 delayThreshold;  // Delay threshold for payout
+    constructor(address _oracle, bytes32 _jobId, uint256 _fee, string memory _apiKey) {
+        _setPublicChainlinkToken();
+        oracle = _oracle;
+        jobId = _jobId;
+        fee = _fee;
+        apiKey = _apiKey; // Your API key for the external flight delay API
     }
 
-    mapping(uint256 => Policy) public policies;
-    uint256 public policyCount;
+    // Request Flight Delay Data
+    function requestFlightDelayData(string memory flightNumber) public onlyOwner {
+        Chainlink.Request memory request = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+        
+        // External API URL (replace with your actual API)
+        string memory apiUrl = string(abi.encodePacked(
+            "https://api.yourflightdata.com/delay?flight=",
+            flightNumber,
+            "&apiKey=",
+            apiKey
+        ));
+        
+        // Set the API endpoint and parameters
+        request._add("get", apiUrl);
+        request._add("path", "data.delay"); // Adjust the path according to your JSON structure
 
-    event PolicyCreated(uint256 policyId, address insured, uint256 premium, uint256 payoutAmount, string flightNumber);
-    event PayoutTriggered(uint256 policyId, address insured, uint256 payoutAmount);
-
-    // Constructor to initialize the contract with the Chainlink data feed address
-    constructor(address _flightDelayFeed) {
-        flightDelayFeed = AggregatorV3Interface(_flightDelayFeed);
-        owner = msg.sender;
+        _sendChainlinkRequestTo(oracle, request, fee);
     }
 
-    // Function to create a new insurance policy
-    function createPolicy(
-        address insured,
-        uint256 premium,
-        uint256 payoutAmount,
-        string memory flightNumber,
-        uint256 delayThreshold
-    ) public {
-        policyCount++;
-        policies[policyCount] = Policy(insured, premium, payoutAmount, true, flightNumber, delayThreshold);
-        emit PolicyCreated(policyCount, insured, premium, payoutAmount, flightNumber);
+    // Callback function
+    function fulfill(bytes32 _requestId, uint256 _delay) public recordChainlinkFulfillment(_requestId) {
+        flightDelay = _delay;
+        emit FlightDelayUpdated(_delay);
     }
 
-    // Function to fetch the latest flight delay from Chainlink data feed
-    function getLatestFlightDelay() public view returns (int256) {
-        (, int256 latestDelay, , , ) = flightDelayFeed.latestRoundData();
-        return latestDelay;
+    // Withdraw LINK from contract
+    function withdrawLink() external onlyOwner {
+        LinkTokenInterface link = LinkTokenInterface(_chainlinkTokenAddress());
+        require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
-
-    // Function to trigger the insurance payout if delay threshold is exceeded
-    function triggerPayout(uint256 policyId) public {
-        Policy storage policy = policies[policyId];
-        require(policy.isActive, "Policy is not active");
-
-        // Fetch the latest delay from Chainlink
-        int256 latestDelay = getLatestFlightDelay();
-        require(latestDelay >= 0, "Negative delay received from oracle");
-
-        // Check if the flight delay exceeds the policy's delay threshold
-        if (uint256(latestDelay) >= policy.delayThreshold) {
-            uint256 payoutAmount = policy.payoutAmount;
-            policy.isActive = false;  // Deactivate the policy
-            require(address(this).balance >= payoutAmount, "Not enough contract balance");
-            payable(policy.insured).transfer(payoutAmount);  // Process payout to the insured
-            emit PayoutTriggered(policyId, policy.insured, payoutAmount);
-        }
-    }
-
-    // Fallback function to receive payments
-    receive() external payable {}
 }

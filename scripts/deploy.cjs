@@ -1,24 +1,26 @@
-const { ethers } = require("hardhat");
-const { helpers } = require ("@nomicfoundation/hardhat-toolbox");
-
-
+const hre = require("hardhat");
 
 async function main() {
-  const oracle = "ORACLE_ADDRESS";  // Replace with your Chainlink flight data oracle
-  const jobId = ethers.utils.formatBytes32String("JOB_ID");  // Replace with the correct Job ID
-  const fee = ethers.utils.parseEther("0.1");  // Chainlink fee in LINK tokens
-  const linkToken = "LINK_TOKEN_ADDRESS";  // LINK token address on Sepolia
+    const [deployer] = await hre.ethers.getSigners();
+    console.log("Deploying contracts with account:", deployer.address);
 
-  const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy");
-  const insurance = await InsurancePolicy.deploy(oracle, jobId, fee, linkToken);
-  await insurance.waitForDeployment();
+    const InsurancePolicy = await hre.ethers.getContractFactory("InsurancePolicy");
 
-  console.log("InsurancePolicy deployed to:", insurance.target);
+    // Replace with your Oracle address, Job ID, fee, and API Key
+    const oracle = "0xYourOracleAddress";
+    const jobId = "YourJobID"; 
+    const fee = hre.ethers.utils.parseEther("0.1"); // 0.1 LINK
+    const apiKey = "YourAPIKey"; // Replace with your actual API key
+
+    const insurancePolicy = await InsurancePolicy.deploy(oracle, jobId, fee, apiKey);
+    await insurancePolicy.deployed();
+
+    console.log("InsurancePolicy deployed to:", insurancePolicy.address);
 }
 
 main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
