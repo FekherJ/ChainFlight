@@ -18,13 +18,40 @@ contract MockOracle {
         bytes data
     );
 
-    // Add a constructor to initialize linkToken if necessary
+    event OracleFulfilled(bytes32 indexed requestId);
+
+    // Initialize linkToken in the constructor
     constructor(address _linkTokenAddress) {
         linkToken = LinkTokenInterface(_linkTokenAddress);
     }
 
+    // onTokenTransfer is called when LINK is transferred to this contract
+    function onTokenTransfer(
+        address _sender,
+        uint256 _value,
+        bytes memory _data
+    ) public {
+        require(msg.sender == address(linkToken), "Only LinkToken can trigger");
+        
+        // Decode the incoming data to get the requestId (bytes32 type)
+        bytes32 requestId = abi.decode(_data, (bytes32));
+
+        // Emit an event to simulate the OracleRequest event
+        emit OracleRequest(
+            requestId,
+            _sender, // The requester (who sent the LINK)
+            bytes32(0), // Mock jobId (can be updated if necessary)
+            address(this), // The callback address (this oracle)
+            bytes4(0), // Mock callback function ID
+            block.timestamp, // The expiration timestamp
+            _value, // The amount of LINK tokens transferred
+            _data // The data payload (includes requestId)
+        );
+    }
+
+    // Simulates the Chainlink oracle fulfilling the request
     function fulfillOracleRequest(bytes32 _requestId) public {
-        // Mock function to simulate Chainlink response
-        emit OracleRequest(_requestId, msg.sender, bytes32(0), address(this), bytes4(0), block.timestamp, 0, "");
+        // Emit an event to simulate fulfilling the request
+        emit OracleFulfilled(_requestId);
     }
 }
