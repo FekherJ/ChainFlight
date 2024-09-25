@@ -8,6 +8,8 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
     using Chainlink for Chainlink.Request;
 
     // Chainlink parameters
+    uint256 public flightDelayStatus;  // Store flight delay status here
+
     address private oracle;
     bytes32 private jobId;
     uint256 private fee;
@@ -26,17 +28,15 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
 
     event PolicyCreated(uint256 policyId, address policyHolder, uint256 premiumAmount);
     event ClaimPaid(uint256 policyId, address policyHolder, uint256 payoutAmount);
-    event DataReceived(bytes32 indexed requestId, uint256 insuranceRate);
+    event FlightDelayDataReceived(bytes32 indexed requestId, uint256 flightDelayStatus);
+    event RequestSent(bytes32 indexed requestId);
 
-
-    
     constructor(
         address _oracle,
         bytes32 _jobId,
         uint256 _fee,
         address _link
-    ) Ownable(msg.sender) {  // No arguments for Ownable constructor
-        // Initialize Chainlink parameters
+    ) Ownable(msg.sender) {
         _setChainlinkOracle(_oracle);
         jobId = _jobId;
         fee = _fee;
@@ -66,47 +66,40 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
         Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfillClaim.selector);
         req._add("policyId", uint2str(policyId));
 
-        _sendChainlinkRequest(req, fee);
+        bytes32 requestId = _sendChainlinkRequest(req, fee);
+        emit RequestSent(requestId);
+    }
+
+    function requestFlightDelayData(string memory apiEndpoint) public returns (bytes32 requestId) {           
+    Chainlink.Request memory request = _buildChainlinkRequest(jobId, address(this), this.fulfillFlightDelayDataRequest.selector);
+    
+    // Add the GET request URL for the API
+    request._add("get", apiEndpoint);   
+
+    // Add the path to the specific data point within the API response JSON
+    request._add("path", "data.flight_delay_status");  // Adjust 'path' based on API's response format
+
+    requestId = _sendChainlinkRequestTo(oracle, request, fee);   // Send the request to the oracle
+    emit RequestSent(requestId);  // Emit the event with the request ID
+}
+
+
+    // Callback function that Chainlink oracle will call with the flight delay data
+    function fulfillFlightDelayDataRequest(bytes32 _requestId, uint256 _flightDelayStatus) public recordChainlinkFulfillment(_requestId) {
+        flightDelayStatus = _flightDelayStatus;  // Store the fetched flight delay status
+        emit FlightDelayDataReceived(_requestId, _flightDelayStatus);
     }
 
     function fulfillClaim(bytes32 _requestId, uint256 _policyId) public recordChainlinkFulfillment(_requestId) {
-        Policy storage policy = policies[_policyId];
-        require(!policy.isClaimed, "Claim already fulfilled");
+    Policy storage policy = policies[_policyId];
+    require(!policy.isClaimed, "Claim already fulfilled");
 
-        policy.isClaimed = true;
+    policy.isClaimed = true;
 
-        // Pay the policy holder the payout amount
-        payable(policy.policyHolder).transfer(policy.payoutAmount);
-
-        emit ClaimPaid(_policyId, policy.policyHolder, policy.payoutAmount);
-    }
-
-
-
-    // Create a Chainlink request to fetch data from an external API
-    function requestInsuranceData(string memory apiEndpoint) public returns (bytes32 requestId) {           
-        
-        Chainlink.Request memory request = _buildChainlinkRequest(jobId, address(this), this.fulfillInsuranceDataRequest.selector);
-    
-        // Add the GET request URL and any additional parameters required by the API
-        request._add("get", apiEndpoint);   // 'get' adds the URL for the API
-    
-        // Add the path to the specific data point within the API response JSON
-        // For example, if you need to extract "insurance_rate" from {"data": {"insurance_rate": 5}}
-        request._add("path", "data.insurance_rate");  // Adjust 'path' based on API's response format
-
-        return _sendChainlinkRequestTo(oracle, request, fee);   // Send the request to the oracle
-    }
-
-
-
-    // Callback function that Chainlink oracle will call with the response
-    function fulfillInsuranceDataRequest(bytes32 _requestId, uint256 _insuranceRate) public recordChainlinkFulfillment(_requestId) {
-        // Handle the received data, for example storing the insurance rate
-        _insuranceRate = _insuranceRate;  // Storing the fetched insurance rate
-        emit DataReceived(_requestId, _insuranceRate);
-    }
-
+    // Pay the policy holder the payout amount
+    payable(policy.policyHolder).transfer(policy.payoutAmount);
+    emit ClaimPaid(_policyId, policy.policyHolder, policy.payoutAmount);
+}
 
 
     function uint2str(uint256 _i) internal pure returns (string memory) {

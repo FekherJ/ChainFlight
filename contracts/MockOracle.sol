@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/interfaces/ChainlinkRequestInterface.sol";
-import "./LinkTokenInterface.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockOracle {
-    LinkTokenInterface public linkToken;
+    ERC20 public linkToken;
 
     event OracleRequest(
         bytes32 indexed requestId,
@@ -18,40 +18,33 @@ contract MockOracle {
         bytes data
     );
 
-    event OracleFulfilled(bytes32 indexed requestId, uint256 data); // Updated to include `data`
+    event OracleFulfilled(bytes32 indexed requestId, uint256 data);
 
-    // Initialize linkToken in the constructor
-    constructor(address _linkTokenAddress) {
-        linkToken = LinkTokenInterface(_linkTokenAddress);
+    constructor(address linkTokenAddress) {
+        linkToken = ERC20(linkTokenAddress);
     }
 
-    // onTokenTransfer is called when LINK is transferred to this contract
-    function onTokenTransfer(
-        address _sender,
-        uint256 _value,
-        bytes memory _data
-    ) public {
-        require(msg.sender == address(linkToken), "Only LinkToken can trigger");
-
+    // This function simulates the Chainlink Oracle's response to `transferAndCall`
+    function onTokenTransfer(address sender, uint256 amount, bytes calldata data) external {
         // Decode the incoming data to get the requestId (bytes32 type)
-        bytes32 requestId = abi.decode(_data, (bytes32));
+        bytes32 requestId = abi.decode(data, (bytes32));
 
         // Emit an event to simulate the OracleRequest event
         emit OracleRequest(
             requestId,
-            _sender, // The requester (who sent the LINK)
+            sender,
             bytes32(0), // Mock jobId (can be updated if necessary)
             address(this), // The callback address (this oracle)
             bytes4(0), // Mock callback function ID
             block.timestamp, // The expiration timestamp
-            _value, // The amount of LINK tokens transferred
-            _data // The data payload (includes requestId)
+            amount, // The amount of LINK tokens transferred
+            data // The data payload (includes requestId)
         );
     }
 
-    // Simulates the Chainlink oracle fulfilling the request with data
-    function fulfillOracleRequest(bytes32 _requestId, uint256 _data) public {
-        // Emit an event to simulate fulfilling the request with the data
-        emit OracleFulfilled(_requestId, _data);
+    // Simulate fulfilling the Chainlink oracle request with the mocked data
+    function fulfillOracleRequest(bytes32 requestId, uint256 flightDelay) public {
+        // Emit event to simulate fulfilling the request with the flight delay
+        emit OracleFulfilled(requestId, flightDelay);
     }
 }
