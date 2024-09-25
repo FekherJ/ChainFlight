@@ -18,7 +18,7 @@ contract MockOracle {
         bytes data
     );
 
-    event OracleFulfilled(bytes32 indexed requestId);
+    event OracleFulfilled(bytes32 indexed requestId, uint256 data); // Updated to include `data`
 
     // Initialize linkToken in the constructor
     constructor(address _linkTokenAddress) {
@@ -32,7 +32,7 @@ contract MockOracle {
         bytes memory _data
     ) public {
         require(msg.sender == address(linkToken), "Only LinkToken can trigger");
-        
+
         // Decode the incoming data to get the requestId (bytes32 type)
         bytes32 requestId = abi.decode(_data, (bytes32));
 
@@ -49,9 +49,9 @@ contract MockOracle {
         );
     }
 
-    // Simulates the Chainlink oracle fulfilling the request
-    function fulfillOracleRequest(bytes32 _requestId) public {
-        // Emit an event to simulate fulfilling the request
-        emit OracleFulfilled(_requestId);
+    // Simulates the Chainlink oracle fulfilling the request with data
+    function fulfillOracleRequest(bytes32 _requestId, uint256 _data) public {
+        // Emit an event to simulate fulfilling the request with the data
+        emit OracleFulfilled(_requestId, _data);
     }
 }

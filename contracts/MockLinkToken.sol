@@ -20,6 +20,9 @@ contract MockLinkToken is ERC20 {
     }
 
     function transferAndCall(address to, uint256 value, bytes calldata data) public returns (bool) {
+     
+      require(to != address(0), "Invalid receiver address"); // Ensure the receiver is not 0x0
+
       _transfer(msg.sender, to, value);
 
       // Correctly call the onTokenTransfer function in the receiving contract

@@ -29,20 +29,34 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy");
         insurancePolicy = await InsurancePolicy.deploy(mockOracleAddress, jobId, fee, mockLinkTokenAddress); // Use correct mockLinkTokenAddress
         await insurancePolicy.waitForDeployment(); // Wait for deployment
+        const insurancePolicyAddress = await insurancePolicy.getAddress();
+        console.log('insurancePolicy address:', insurancePolicyAddress);
         
 
         // Deploy the FlightDelayAPI contract
         const FlightDelayAPI = await ethers.getContractFactory("FlightDelayAPI");
         flightDelayAPI = await FlightDelayAPI.deploy(mockOracleAddress, jobId, fee, mockLinkTokenAddress);
         await flightDelayAPI.waitForDeployment(); // Wait for deployment
-        console.log('flightDelayAPI address:', await flightDelayAPI.getAddress());
+        const flightDelayAPIAddress = await flightDelayAPI.getAddress();
+        console.log('flightDelayAPI address:', flightDelayAPIAddress);
+
+        // Transfer some LINK tokens to the FlightDelayAPI and InsurancePolicy contracts
+        await mockLinkToken.transfer(flightDelayAPIAddress, ethers.parseEther("5000")); // Transfer 5000 LINK
+        await mockLinkToken.transfer(insurancePolicyAddress, ethers.parseEther("5000")); // Transfer 5000 LINK
+
+        // Log the LINK token balances of each contract to ensure tokens are transferred
+        const flightDelayAPILinkBalance = await mockLinkToken.balanceOf(flightDelayAPIAddress);
+        const insurancePolicyLinkBalance = await mockLinkToken.balanceOf(insurancePolicyAddress);
+
+        console.log('FlightDelayAPI LINK Balance:', ethers.formatEther(flightDelayAPILinkBalance));  // Should be 5000 LINK
+        console.log('InsurancePolicy LINK Balance:', ethers.formatEther(insurancePolicyLinkBalance));  // Should be 5000 LINK
+
+  
     });
 
     it("Should create a policy and emit PolicyCreated event", async function () {
         const premiumAmount = ethers.parseEther("1");
         const payoutAmount = ethers.parseEther("10");
-
-        console.log('insurancePolicy address:', await insurancePolicy.getAddress());
         
         // Test creating a policy and emitting the event
         await expect(insurancePolicy.createPolicy(premiumAmount, payoutAmount, { value: premiumAmount }))
@@ -77,6 +91,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
 
         // Mock the oracle's response (fulfill the request with a mock delay)
         const mockFlightDelay = ethers.parseUnits("30", 18);  // Example delay of 30 minutes
+        console.log('Flight delay : ',mockFlightDelay);
         const requestId = ethers.keccak256(ethers.toUtf8Bytes("flight-delay-test-request")); // Mock requestId
         await mockOracle.fulfillOracleRequest(requestId, mockFlightDelay); // Fulfill mock flight delay request
 
