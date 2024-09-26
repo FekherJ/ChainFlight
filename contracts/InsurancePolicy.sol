@@ -70,18 +70,17 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
         emit RequestSent(requestId);
     }
 
-    function requestFlightDelayData(string memory apiEndpoint) public returns (bytes32 requestId) {           
-    Chainlink.Request memory request = _buildChainlinkRequest(jobId, address(this), this.fulfillFlightDelayDataRequest.selector);
+    function requestFlightDelayData(string memory flightNumber) public returns (bytes32 requestId) {
+    Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfillFlightDelayDataRequest.selector);
     
-    // Add the GET request URL for the API
-    request._add("get", apiEndpoint);   
-
-    // Add the path to the specific data point within the API response JSON
-    request._add("path", "data.flight_delay_status");  // Adjust 'path' based on API's response format
-
-    requestId = _sendChainlinkRequestTo(oracle, request, fee);   // Send the request to the oracle
-    emit RequestSent(requestId);  // Emit the event with the request ID
+    // Add parameters for the request (if required by the API or oracle)
+    req._add("flightNumber", flightNumber);
+    
+    // Send the request, paying the required LINK fee
+    requestId = _sendChainlinkRequest(req, fee);
+    emit RequestSent(requestId);  // Log the request being sent
 }
+
 
 
     // Callback function that Chainlink oracle will call with the flight delay data

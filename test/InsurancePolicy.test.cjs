@@ -11,6 +11,9 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
     const fee = ethers.parseEther("0.1"); // Use ethers v6 syntax for fee
 
     beforeEach(async function () {
+
+        console.log("Fee : ", fee);
+        console.log("Job ID : ", jobId);
         // Deploy the MockLinkToken contract
         const MockLinkToken = await ethers.getContractFactory("MockLinkToken");
         mockLinkToken = await MockLinkToken.deploy();
@@ -64,81 +67,89 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
     });
 
     it("Should request and fulfill flight delay data using Chainlink", async function () {
-      const apiEndpoint = "https://api.aviationstack.com/v1/flights?access_key=975d6fc4ac001e8fb0ad8d7bbfd7ee18"; // Example AviationStack API endpoint
-  
-      // Send a request to fetch flight delay data
-      const tx = await insurancePolicy.requestFlightDelayData(apiEndpoint);
-      const receipt = await tx.wait(); // Wait for the transaction to complete
-
-      console.log(receipt); // Log the entire receipt to debug
-
-      // Safeguard: Check if any events are emitted and find the right event
-      if (receipt.events) {
-          const event = receipt.events.find(event => event.event === "RequestSent");
-          if (event) {
-              const requestId = event.args.requestId;
-              console.log("Request ID:", requestId.toString());
-          } else {
-              console.log("RequestSent event not found.");
-          }
-      } else {
-          console.log("No events found in the receipt.");
-      }
-
-  
-      // Capture the emitted event to get the requestId
-      const event = receipt.events.find(event => event.event === "RequestSent");
-      const requestId = event.args.requestId;
-      console.log("Request ID:", requestId.toString());
-  
-      // Mock the oracle's response (fulfill the request with a mock flight delay)
-      const mockFlightDelay = ethers.toBigInt("30");  // Example delay of 30 minutes
-      await mockOracle.fulfillOracleRequest(requestId, mockFlightDelay); // Fulfill the mock request
-  
-      // Verify that the flight delay is correctly updated
-      const flightDelay = await insurancePolicy.flightDelay();
-      expect(flightDelay).to.equal(mockFlightDelay);
+        const apiEndpoint = "https://api.aviationstack.com/v1/flights?access_key=975d6fc4ac001e8fb0ad8d7bbfd7ee18"; // Example AviationStack API endpoint
+    
+        // Send a request to fetch flight delay data
+        const tx = await insurancePolicy.requestFlightDelayData(apiEndpoint);
+        const receipt = await tx.wait(); // Wait for the transaction to complete
+    
+        console.log(receipt); // Log the entire receipt to debug
+    
+        // Create a new AbiCoder instance for decoding the event
+        const abiCoder = new ethers.AbiCoder();
+    
+        // Safeguard: Check if any events are emitted and find the right event
+        if (receipt.logs.length > 0) {
+            // Find the event by the topic (event signature hash for "RequestSent(bytes32)")
+            const event = receipt.logs.find(log => log.topics[0] === ethers.id("RequestSent(bytes32)"));
+    
+            if (event) {
+                if (event.data === '0x' || event.data.length === 0) {
+                    console.log("Event data is empty.");
+                } else {
+                    // Decode the event data using the AbiCoder instance
+                    const decodedEvent = abiCoder.decode(["bytes32"], event.data);
+                    const requestId = decodedEvent[0];  // Extract the requestId from the decoded event
+                    console.log("Request ID:", requestId.toString());
+    
+                    // Mock the oracle's response (fulfill the request with a mock delay)
+                    const mockFlightDelay = ethers.toBigInt("30");  // Example delay of 30 minutes
+                    console.log('Flight delay:', mockFlightDelay);
+    
+                    await mockOracle.fulfillOracleRequest(requestId, mockFlightDelay); // Fulfill the request with the actual requestId
+    
+                    // Verify that the flight delay is correctly updated
+                    const flightDelay = await insurancePolicy.flightDelay();  // Assuming flightDelay() is the getter for delay status
+                    expect(flightDelay).to.equal(mockFlightDelay);
+                }
+            } else {
+                console.log("RequestSent event not found.");
+            }
+        } else {
+            console.log("No events found in the receipt.");
+        }
     });
+    
   
 
     it("Should request flight delay data from the FlightDelayAPI contract", async function () {
-      const flightNumber = "504";
-      const flightDate = "2024-09-26";
+        const flightNumber = "504";
+        const flightDate = "2024-09-26";
   
-      // Call the function to request flight delay data
-      const tx = await flightDelayAPI.requestFlightData(flightNumber, flightDate);
-      const receipt = await tx.wait(); // Wait for the transaction to complete
-      console.log(receipt); // Log the entire receipt to debug
-
-      if (receipt.events) {
-        const event = receipt.events.find(event => event.event === "RequestSent");
-        if (event) {
-            const requestId = event.args.requestId;
-            console.log("Request ID:", requestId.toString());
+        // Call the function to request flight delay data
+        const tx = await flightDelayAPI.requestFlightData(flightNumber);  // add flightDate later
+        const receipt = await tx.wait(); // Wait for the transaction to be mined
+        console.log("receipt : ",receipt); // Log the entire receipt to debug
+  
+        if (receipt.logs.length > 0) {
+          // Find the event by the topic (event signature hash for "RequestSent(bytes32)")
+          const event = receipt.logs.find(log => log.topics[0] === ethers.id("RequestSent(bytes32)"));
+  
+          if (event) {
+              if (event.data === '0x' || event.data.length === 0) {
+                  console.log("Event data is empty.");
+              } else {
+                  // Decode the event data using the AbiCoder instance
+                  const abiCoder = new ethers.AbiCoder();
+                  const decodedEvent = abiCoder.decode(["bytes32"], event.data);
+                  const requestId = decodedEvent[0];  // Extract the requestId from the decoded event
+                  console.log("Request ID:", requestId.toString());
+  
+                  // Now use this requestId for the mock oracle response
+                  const mockFlightDelay = ethers.toBigInt("30");  // Example delay of 30 minutes
+                  console.log('Flight delay:', mockFlightDelay);
+  
+                  await mockOracle.fulfillOracleRequest(requestId, mockFlightDelay); // Fulfill the request with the actual requestId
+  
+                  // Verify that the flight delay is correctly updated
+                  const flightDelay = await flightDelayAPI.delay();  // Assuming delay() is the getter for delay status
+                  expect(flightDelay).to.equal(mockFlightDelay);
+              }
+          } else {
+              console.log("RequestSent event not found.");
+          }
         } else {
-            console.log("RequestSent event not found.");
+          console.log("No events found in the receipt.");
         }
-      } else {
-        console.log("No events found in the receipt.");
-      }
-
-  
-      // Capture the emitted event to get the requestId
-      const event = receipt.events.find(event => event.event === "RequestSent");
-      const requestId = event.args.requestId; // This is the real request ID from the event
-      console.log("Request ID:", requestId.toString());
-  
-      // Mock the oracle's response (fulfill the request with a mock delay)
-      const mockFlightDelay = ethers.toBigInt("30"); // Example delay of 30 minutes
-      console.log('Flight delay:', mockFlightDelay);
-  
-      // Rename this to mockRequestId to avoid conflict
-      const mockRequestId = ethers.keccak256(ethers.toUtf8Bytes("flight-delay-test-request")); // Mock requestId
-      await mockOracle.fulfillOracleRequest(mockRequestId, mockFlightDelay); // Fulfill mock flight delay request
-  
-      // Verify that the flight delay is correctly updated
-      const flightDelay = await flightDelayAPI.delay();
-      expect(flightDelay).to.equal(mockFlightDelay);
+      });
   });
-  
-});
