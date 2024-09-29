@@ -180,27 +180,32 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
     // NEW TEST CASE: Handle missing or invalid flight delay data
     it("Should handle missing or invalid flight delay data", async function () {
         const flightNumber = "504";
-
+    
         // Simulate the request
         const tx = await flightDelayAPI.requestFlightData(flightNumber);
         const receipt = await tx.wait();
-
+    
         const abiCoder = new ethers.AbiCoder();
         const event = receipt.logs.find(log => log.topics[0] === ethers.id("RequestSent(bytes32)"));
-
+    
         if (event && event.data !== '0x') {
             const decodedEvent = abiCoder.decode(["bytes32"], event.data);
             const requestId = decodedEvent[0];
-
-            // Mock the response from the oracle with an invalid or missing delay
+    
+            // Log the requestId to check if it is correctly fetched
+            console.log("Request ID:", requestId.toString());
+    
+            // Mock the response from the oracle with invalid or missing data (0 delay)
             await mockOracle.fulfillOracleRequest(requestId, ethers.toBigInt("0"));
-
-            // Verify that NoDelayReported is emitted for missing data
+    
+            // Verify that FlightNoDelay or NoDelayReported is emitted for missing data
             await expect(mockOracle.fulfillOracleRequest(requestId, ethers.toBigInt("0")))
                 .to.emit(flightDelayAPI, "FlightNoDelay")
                 .withArgs(requestId);
         } else {
+            console.log("Event data is empty or invalid. No valid RequestSent event found.");
             throw new Error("Event data is empty or invalid.");
         }
     });
+    
 });

@@ -17,6 +17,8 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
     event RequestFlightData(bytes32 indexed requestId, uint256 delay, string flightStatus);
     event FlightDelayDataReceived(bytes32 indexed requestId, uint256 flightDelayStatus);
     event FlightNoDelay(bytes32 indexed requestId);  // NEW event for no delay
+    event RequestSent(bytes32 indexed requestId);
+
 
     // Constructor to initialize Chainlink Any API details
     constructor(address _linkToken) Ownable(msg.sender) {
@@ -43,7 +45,9 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
         req._add("get", apiUrl); // Set the GET request URL
         req._add("path", "data.0.arrival.delay"); // Path to access the delay in the JSON response
 
-        return _sendChainlinkRequestTo(oracle, req, fee); // Send the request to the Chainlink Oracle
+        requestId = _sendChainlinkRequestTo(oracle, req, fee);
+        emit RequestSent(requestId); // Emit the RequestSent event
+        return requestId; // Send the request to the Chainlink Oracle
     }
 
     /**
