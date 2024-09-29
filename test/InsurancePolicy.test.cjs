@@ -105,6 +105,38 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         }
     });
 
+    it("Should emit NoDelayReported event when there is no delay", async function () {
+        const flightNumber = "123";
+
+        // Send a request to fetch flight delay data
+        const tx = await insurancePolicy.requestFlightDelayData(flightNumber);
+        const receipt = await tx.wait();
+
+        // Simulate no delay scenario
+        const abiCoder = new ethers.AbiCoder();
+        const event = receipt.logs.find(log => log.topics[0] === ethers.id("RequestSent(bytes32)"));
+
+        if (event) {
+            if (event.data && event.data !== '0x' && event.data.length > 0) {
+                const decodedEvent = abiCoder.decode(["bytes32"], event.data);
+                const requestId = decodedEvent[0];
+                console.log("Request ID:", requestId.toString());
+
+                // Fulfill oracle request with no delay (0 minutes)
+                await mockOracle.fulfillOracleRequest(requestId, ethers.toBigInt("0")); // No delay
+
+                // Expect NoDelayReported event to be emitted
+                await expect(mockOracle.fulfillOracleRequest(requestId, ethers.toBigInt("0")))
+                    .to.emit(insurancePolicy, "NoDelayReported")
+                    .withArgs(requestId);
+            } else {
+                console.log("Event data is empty or invalid.");
+            }
+        } else {
+            console.log("RequestSent event not found.");
+        }
+    });
+
     it("Should request flight delay data from the FlightDelayAPI contract", async function () {
         const flightNumber = "504";
 
@@ -142,6 +174,33 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
             }
         } else {
             console.log("No events found in the receipt.");
+        }
+    });
+
+    // NEW TEST CASE: Handle missing or invalid flight delay data
+    it("Should handle missing or invalid flight delay data", async function () {
+        const flightNumber = "504";
+
+        // Simulate the request
+        const tx = await flightDelayAPI.requestFlightData(flightNumber);
+        const receipt = await tx.wait();
+
+        const abiCoder = new ethers.AbiCoder();
+        const event = receipt.logs.find(log => log.topics[0] === ethers.id("RequestSent(bytes32)"));
+
+        if (event && event.data !== '0x') {
+            const decodedEvent = abiCoder.decode(["bytes32"], event.data);
+            const requestId = decodedEvent[0];
+
+            // Mock the response from the oracle with an invalid or missing delay
+            await mockOracle.fulfillOracleRequest(requestId, ethers.toBigInt("0"));
+
+            // Verify that NoDelayReported is emitted for missing data
+            await expect(mockOracle.fulfillOracleRequest(requestId, ethers.toBigInt("0")))
+                .to.emit(flightDelayAPI, "FlightNoDelay")
+                .withArgs(requestId);
+        } else {
+            throw new Error("Event data is empty or invalid.");
         }
     });
 });

@@ -16,13 +16,14 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
 
     event RequestFlightData(bytes32 indexed requestId, uint256 delay, string flightStatus);
     event FlightDelayDataReceived(bytes32 indexed requestId, uint256 flightDelayStatus);
+    event FlightNoDelay(bytes32 indexed requestId);  // NEW event for no delay
 
     // Constructor to initialize Chainlink Any API details
     constructor(address _linkToken) Ownable(msg.sender) {
         _setChainlinkToken(_linkToken);
-        oracle = 0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD;  // Update this with the Chainlink Any API Oracle
-        jobId = "ca98366cc7314957b8c012c72f05aeeb";           // Update this with the Chainlink Any API Job ID
-        fee = 0.1 * 10 ** 18;                         // Fee for Chainlink request
+        oracle = 0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD;  // Update with the Chainlink Any API Oracle
+        jobId = "ca98366cc7314957b8c012c72f05aeeb";           // Update with the Chainlink Any API Job ID
+        fee = 0.1 * 10 ** 18;                                 // Chainlink request fee
     }
 
     /**
@@ -33,7 +34,7 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
     function requestFlightData(string memory flightNumber) public returns (bytes32 requestId) {
         Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
 
-        // Construct the API URL for the query (example using AviationStack API)
+        // Construct the API URL for the query (replace YOUR_API_KEY with the actual key)
         string memory apiUrl = string(abi.encodePacked(
             "https://api.aviationstack.com/v1/flights?access_key=975d6fc4ac001e8fb0ad8d7bbfd7ee18&flight_number=", 
             flightNumber
@@ -51,8 +52,12 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
      * @param _flightDelayStatus The delay status received from the API
      */
     function fulfill(bytes32 _requestId, uint256 _flightDelayStatus) public recordChainlinkFulfillment(_requestId) {
-        flightDelayStatus = _flightDelayStatus;  // Update the flight delay status with data from the oracle
-        emit FlightDelayDataReceived(_requestId, _flightDelayStatus);  // Emit event for logging
+        if (_flightDelayStatus > 0) {
+            flightDelayStatus = _flightDelayStatus;  // Update the flight delay status with data from the oracle
+            emit FlightDelayDataReceived(_requestId, _flightDelayStatus);
+        } else {
+            emit FlightNoDelay(_requestId);  // NEW event when no delay is reported
+        }
     }
 
     /**
