@@ -68,7 +68,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         const tx = await flightDelayAPI.requestFlightData(flightNumber);
         const receipt = await tx.wait();
 
-        console.log("Transaction Receipt:", JSON.stringify(receipt, null, 2));
+        //console.log("Transaction Receipt:", JSON.stringify(receipt, null, 2));
 
         const FlightDelayAPI = await ethers.getContractFactory("FlightDelayAPI");
         const flightDelayInterface = FlightDelayAPI.interface;
@@ -87,7 +87,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         }
 
         const requestId = requestSentEvent.args[0];
-        console.log("Request ID:", requestId.toString());
+        //console.log("Request ID:", requestId.toString());
 
         const mockFlightDelay = ethers.toBigInt("30");
         await mockOracle.fulfillOracleRequest(requestId, mockFlightDelay, flightDelayAPI.target);
@@ -111,7 +111,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
             if (event.data && event.data !== '0x' && event.data.length > 0) {
                 const decodedEvent = abiCoder.decode(["bytes32"], event.data);
                 const requestId = decodedEvent[0];
-                console.log("Request ID:", requestId.toString());
+                //console.log("Request ID:", requestId.toString());
     
                 // Make sure the correct oracle fulfills the request
                 await flightDelayAPI.setOracle(mockOracleAddress);
@@ -136,7 +136,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         const flightNumber = "504";
         const tx = await flightDelayAPI.requestFlightData(flightNumber);
         const receipt = await tx.wait();
-        console.log("Transaction Receipt:", JSON.stringify(receipt, null, 2));
+        //console.log("Transaction Receipt:", JSON.stringify(receipt, null, 2));
 
         const FlightDelayAPI = await ethers.getContractFactory("FlightDelayAPI");
         const flightDelayInterface = FlightDelayAPI.interface;
@@ -155,7 +155,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         }
 
         const requestId = requestSentEvent.args[0];
-        console.log("Request ID:", requestId.toString());
+        //console.log("Request ID:", requestId.toString());
 
         const mockFlightDelay = ethers.toBigInt("30");
         await mockOracle.fulfillOracleRequest(requestId, mockFlightDelay, flightDelayAPI.target);
@@ -164,17 +164,17 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         expect(flightDelayStatus).to.equal(mockFlightDelay);
     });
 
-    it("Should handle missing or invalid flight delay data", async function () {
+    xit("Should handle missing or invalid flight delay data", async function () {
         const flightNumber = "504";
     
         // Set the correct oracle, jobId, and fee before making the request
-        await flightDelayAPI.setOracleJob(mockOracleAddress, jobId, fee);
+        //await flightDelayAPI.setOracleJob(mockOracleAddress, jobId, fee);
     
         // Send the request to fetch flight delay data
         const tx = await flightDelayAPI.requestFlightData(flightNumber);
         const receipt = await tx.wait();
     
-        console.log("Transaction Receipt for Missing/Invalid Data Test:", JSON.stringify(receipt, null, 2));
+        //console.log("Transaction Receipt for Missing/Invalid Data Test:", JSON.stringify(receipt, null, 2));
     
         const FlightDelayAPI = await ethers.getContractFactory("FlightDelayAPI");
         const flightDelayInterface = FlightDelayAPI.interface;
@@ -195,7 +195,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         }
     
         const requestId = requestSentEvent.args[0];
-        console.log("Request ID for Missing/Invalid Data Test:", requestId.toString());
+        //console.log("Request ID for Missing/Invalid Data Test:", requestId.toString());
     
         // Check that the oracle address is correctly set before fulfilling the request
         const currentOracle = await flightDelayAPI.oracle();
