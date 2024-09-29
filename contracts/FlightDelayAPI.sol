@@ -10,7 +10,7 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
     string public flightStatus; // Holds the status of the flight
     uint256 public flightDelayStatus; // Holds the delay of the flight in minutes
 
-    address private oracle;
+    address public oracle;  // changed for test purposes -> TO SET AS PRIVATE!!!
     bytes32 private jobId;
     uint256 private fee;
 
@@ -20,13 +20,14 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
     event RequestSent(bytes32 indexed requestId);
 
 
-    // Constructor to initialize Chainlink Any API details
-    constructor(address _linkToken) Ownable(msg.sender) {
+   // Constructor to initialize Chainlink Any API details
+    constructor(address _linkToken, address _oracle, bytes32 _jobId, uint256 _fee) Ownable(msg.sender) {
         _setChainlinkToken(_linkToken);
-        oracle = 0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD;  // Update with the Chainlink Any API Oracle
-        jobId = "ca98366cc7314957b8c012c72f05aeeb";           // Update with the Chainlink Any API Job ID
-        fee = 0.1 * 10 ** 18;                                 // Chainlink request fee
+        oracle = _oracle;       // The MockOracle address can be passed here
+        jobId = _jobId;         // Pass a mock jobId for testing
+        fee = _fee;             // Pass a fee (like 0.1 LINK in wei)
     }
+
 
     /**
      * @notice Request flight delay data from an external API

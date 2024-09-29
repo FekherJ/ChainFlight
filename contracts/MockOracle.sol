@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/interfaces/ChainlinkRequestInterface.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./FlightDelayAPI.sol";
 
 contract MockOracle {
     ERC20 public linkToken;
@@ -43,8 +44,14 @@ contract MockOracle {
     }
 
     // Simulate fulfilling the Chainlink oracle request with the mocked data
-    function fulfillOracleRequest(bytes32 requestId, uint256 flightDelay) public {
+    function fulfillOracleRequest(bytes32 requestId, uint256 flightDelay, address flightDelayAPI) public {
+
+        // Call the fulfill function in the FlightDelayAPI contract
+        FlightDelayAPI(flightDelayAPI).fulfill(requestId, flightDelay);
+    
         // Emit event to simulate fulfilling the request with the flight delay
         emit OracleFulfilled(requestId, flightDelay);
     }
+
+
 }
