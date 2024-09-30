@@ -1,114 +1,163 @@
-🚀 Decentralized Insurance Platform
 
-A decentralized flight delay insurance platform built on Ethereum, using smart contracts and Chainlink Any API to automate policy management and payouts based on external flight delay data.
+# 🚀 ChainFlight - Decentralized Flight Delay Insurance Platform
 
+ChainFlight is a decentralized platform built on Ethereum that offers flight delay insurance policies. It utilizes smart contracts and Chainlink Any API to automate policy management and payouts based on real-time flight delay data retrieved from external APIs.
 
+---
 
-📄 Project Overview
+## 📄 Project Overview
 
-This platform offers decentralized, transparent insurance policies for flight delays. Smart contracts automatically trigger payouts to policyholders based on real-time flight delay data retrieved from external APIs via Chainlink's Any API feature.
+This platform leverages blockchain technology to provide decentralized, transparent insurance for flight delays. Through the use of smart contracts, payouts are automatically triggered when a flight delay is detected, ensuring a trustless, reliable, and transparent claims process.
 
+### Key Features
 
+- **Blockchain-Powered Insurance**: Policies are managed on the Ethereum blockchain using smart contracts, ensuring a transparent, trustless system.
+- **Automated Payouts**: When a flight delay is detected via Chainlink Any API, payouts are triggered automatically without the need for manual approval.
+- **Real-Time Data Integration**: Flight delay data is fetched from external APIs via Chainlink's oracle system, ensuring reliable data.
+- **Flexible Policy Management**: Users can create, track, and manage insurance policies directly on-chain.
 
-🔑 Key Features
+---
 
-Blockchain-Powered Insurance: Policies are managed through smart contracts, ensuring trustless and transparent operations.
-Automated Payouts: If a flight delay is detected through Chainlink Any API, payouts are triggered without manual intervention.
-Real-Time Data: Flight delay data is fetched from an external API using Chainlink, offering reliable external data integration.
-Flexible Policy Creation: New insurance policies can be easily created, tracked, and managed on-chain.
+## 📚 Table of Contents
 
+1. [Getting Started](#getting-started)
+2. [Project Structure](#project-structure)
+3. [Running Locally](#running-locally)
+4. [Deploying Contracts](#deploying-contracts)
+5. [Smart Contract Overview](#smart-contract-overview)
+6. [Testing](#testing)
+7. [Contributing](#contributing)
 
+---
 
-📂 Project Structure
+## 🛠️ Getting Started
 
-├── contracts/                
-│   ├── InsurancePolicy.sol     # Main contract managing insurance policies with Chainlink Any API
-│   └── MockV3Aggregator.sol    # Mock contract for testing Chainlink data feeds
-├── chainlink-flight-adapter/   # Chainlink adapter for fetching flight data (via Any API)
-├── router/                     # API route management
-├── scripts/                    # Hardhat scripts (e.g., deployment, interactions)
-├── test/                       # Test scripts for smart contracts
-├── hardhat.config.cjs          # Hardhat configuration
-├── index.cjs                   # Backend server entry point
-├── postman_tests.txt           # Postman collection for API testing
-├── package.json                # Node.js dependencies
-└── README.md                   # Project documentation (this file)
+To get started with ChainFlight, follow the instructions below to set up your environment and interact with the smart contracts.
 
+### Prerequisites
 
+Ensure you have the following installed:
 
-🚀 Getting Started
+- [Node.js](https://nodejs.org/) (v14 or later)
+- [npm](https://www.npmjs.com/) (v6 or later)
+- [Hardhat](https://hardhat.org/) (v2 or later)
+- [Solidity](https://soliditylang.org/) (v0.8.x or later)
+- A local Ethereum network (e.g., using [Ganache](https://www.trufflesuite.com/ganache))
 
-Prerequisites:
+### Installing Dependencies
 
-Ensure you have the following installed before running the project:
-- Node.js
-- Hardhat
-- Metamask
-- Chainlink Node (optional for local oracle setup)
+To install all dependencies required for the project:
 
-  
-Installation:
+```bash
+npm install
+```
 
-- Clone the repository: 
-    git clone https://github.com/FekherJ/DeFi_insurance_platform.git
-    cd DeFi_insurance_platform
-  
-- Install Node.js dependencies:
-    npm install
-  
-- Set up environment variables by creating a .env file:
-    PRIVATE_KEY=<your_metamask_private_key>
-    RPC_URL=<your_ethereum_rpc_url>
-    CHAINLINK_ORACLE=<chainlink_oracle_address>
-    JOB_ID=<chainlink_job_id>
-    LINK_TOKEN_ADDRESS=<link_token_address>
-    FLIGHT_API_KEY=<your_flight_api_key>
+---
 
-    
-Deployment:
+## 📂 Project Structure
 
-- Compile the smart contracts:    npx hardhat compile
-- Deploy the contracts:    npx hardhat run scripts/deploy.js --network <network_name>
+- `contracts/`: Contains the Solidity smart contracts.
+  - `FlightDelayAPI.sol`: Main contract for interacting with flight delay data.
+  - `InsurancePolicy.sol`: Manages insurance policy logic, including claims and payouts.
+  - `MockLinkToken.sol` & `MockOracle.sol`: Mock contracts used for testing (Chainlink tokens and oracles).
+- `scripts/`: Contains deployment scripts.
+  - `deploy.cjs`: Script to deploy the smart contracts to a local or live Ethereum network.
+- `router/`: Contains backend logic in Node.js.
+  - `auth_users.cjs`: Manages user authentication.
+  - `external-adapter.cjs`: Handles fetching flight delay data from external APIs.
+  - `policiesdb.cjs`: Manages insurance policy data in the database.
+- `test/`: Contains unit and integration tests for the smart contracts.
+  - `InsurancePolicy.test.cjs`: Tests for the `InsurancePolicy.sol` contract.
 
+---
 
+## 🚀 Running Locally
 
-🛠️ Testing
+Follow these steps to run the project locally.
 
-You can run the smart contract tests using Hardhat's local node:
+### 1. Clone the Repository
 
-- Start a local blockchain:  npx hardhat node
-- Run the tests:  npx hardhat test
+```bash
+git clone https://github.com/yourusername/ChainFlight.git
+cd ChainFlight
+```
 
+### 2. Compile the Smart Contracts
 
+```bash
+npx hardhat compile
+```
 
-📡 Chainlink Any API Integration
+### 3. Deploy the Contracts Locally
 
-This project integrates Chainlink Any API to retrieve real-time flight delay data from an external API. The oracle fetches flight status, and if a delay is detected, the contract triggers automatic payouts to the insured user.
+Ensure you have a local Ethereum network running (e.g., with Ganache), then deploy the contracts:
 
-Flight Status Codes: The flight data includes codes where 1 means "on-time" and 2 means "delayed."
-Automated Payouts: If a flight is delayed, the policyholder receives the payout based on the policy terms.
+```bash
+npx hardhat run scripts/deploy.cjs --network localhost
+```
 
+### 4. Run the Backend
 
-💻 API Testing
+Once the contracts are deployed, start the Node.js backend:
 
-The project includes a Postman collection for easy API testing. Import postman_tests.txt into Postman to test the policy creation and other endpoints.
+```bash
+npm start
+```
 
-🛠️ Future Enhancements
+---
 
-User Interface: A front-end interface for easier interaction with the platform.
+## 📜 Deploying Contracts
 
-More Insurance Types: Expansion to offer other types of insurance (e.g., health, property).
+You can deploy the smart contracts to Sepolia testnet by editing the `hardhat.config.cjs` to include Sepolia network configurations.
 
-Improved Oracle Data: Enhanced data handling with more precise and diversified oracles.
+To deploy to Sepolia, ensure you have set up your private keys and Chainlink credentials in the `.env` file.
 
+```bash
+npx hardhat run scripts/deploy.cjs --network sepolia
+```
 
+---
 
-📝 License
+## 🧠 Smart Contract Overview
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+### `FlightDelayAPI.sol`
 
+This contract interacts with an external API to fetch flight delay data via Chainlink. It is responsible for receiving and validating flight status updates that will trigger insurance payouts.
 
+### `InsurancePolicy.sol`
 
-👨‍💻 Contributing
+Handles the core insurance logic, including the creation, management, and payouts of policies. When a flight delay is detected, this contract will execute the payouts to eligible users.
 
-Pull requests and contributions are welcome! For major changes, please open an issue first to discuss what you would like to change.
+---
+
+## 🧪 Testing
+
+Unit tests for the `InsurancePolicy` contract can be run using Hardhat's built-in testing framework:
+
+```bash
+npx hardhat test
+```
+
+This will run the tests located in `test/InsurancePolicy.test.cjs` to ensure that the insurance logic, policy creation, and payouts are functioning correctly.
+
+For more details on how to test using Remix IDE, refer to the [REMIX_TESTING.md](REMIX_TESTING.md) file.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork this repository and submit pull requests with your changes.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+### Future Improvements
+
+- **Add More Tests**: Expanding the test coverage for edge cases and other contracts.
+- **Integrate Frontend**: Develop a frontend to allow users to interact with the insurance policies.
+- **Improve Security**: Conduct audits and improve the security of the smart contracts.
