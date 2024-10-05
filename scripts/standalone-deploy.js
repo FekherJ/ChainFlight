@@ -12,7 +12,7 @@ async function main() {
     const MockLinkTokenFactory = await hre.artifacts.readArtifact("MockLinkToken");
     const MockLinkToken = new ethers.ContractFactory(MockLinkTokenFactory.abi, MockLinkTokenFactory.bytecode, signer);
     const mockLinkToken = await MockLinkToken.deploy();
-    await mockLinkToken.deployed();
+    await mockLinkToken.waitForDeployment();
     const mockLinkTokenAddress = mockLinkToken.address;
     console.log("MockLinkToken deployed to:", mockLinkTokenAddress);
 
@@ -20,7 +20,7 @@ async function main() {
     const MockOracleFactory = await hre.artifacts.readArtifact("MockOracle");
     const MockOracle = new ethers.ContractFactory(MockOracleFactory.abi, MockOracleFactory.bytecode, signer);
     const mockOracle = await MockOracle.deploy(mockLinkTokenAddress);
-    await mockOracle.deployed();
+    await mockOracle.waitForDeployment();
     const mockOracleAddress = mockOracle.address;
     console.log("MockOracle deployed to:", mockOracleAddress);
 
@@ -32,7 +32,7 @@ async function main() {
     const FlightDelayAPIFactory = await hre.artifacts.readArtifact("FlightDelayAPI");
     const FlightDelayAPI = new ethers.ContractFactory(FlightDelayAPIFactory.abi, FlightDelayAPIFactory.bytecode, signer);
     const flightDelayAPI = await FlightDelayAPI.deploy(mockOracleAddress, jobId, fee, mockLinkTokenAddress);
-    await flightDelayAPI.deployed();
+    await flightDelayAPI.waitForDeployment();
     const flightDelayAPIAddress = flightDelayAPI.address;
     console.log("FlightDelayAPI deployed to:", flightDelayAPIAddress);
 
@@ -40,7 +40,7 @@ async function main() {
     const InsurancePolicyFactory = await hre.artifacts.readArtifact("InsurancePolicy");
     const InsurancePolicy = new ethers.ContractFactory(InsurancePolicyFactory.abi, InsurancePolicyFactory.bytecode, signer);
     const insurancePolicy = await InsurancePolicy.deploy(flightDelayAPIAddress, mockLinkTokenAddress);
-    await insurancePolicy.deployed();
+    await insurancePolicy.waitForDeployment();
     const insurancePolicyAddress = insurancePolicy.address;
     console.log("InsurancePolicy deployed to:", insurancePolicyAddress);
 

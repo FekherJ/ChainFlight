@@ -24,7 +24,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         const MockOracle = await ethers.getContractFactory("MockOracle");
         mockOracle = await MockOracle.deploy(mockLinkTokenAddress);
         await mockOracle.waitForDeployment();
-        mockOracleAddress = await mockOracle.getAddress();  // Store the oracle address here
+        const mockOracleAddress = await mockOracle.getAddress();  // Store the oracle address here
 
         // Deploy the InsurancePolicy contract
         const InsurancePolicy = await ethers.getContractFactory("InsurancePolicy");
@@ -164,7 +164,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         expect(flightDelayStatus).to.equal(mockFlightDelay);
     });
 
-    xit("Should handle missing or invalid flight delay data", async function () {
+    it("Should handle missing or invalid flight delay data", async function () {
         const flightNumber = "504";
     
         // Set the correct oracle, jobId, and fee before making the request
@@ -198,7 +198,7 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
         //console.log("Request ID for Missing/Invalid Data Test:", requestId.toString());
     
         // Check that the oracle address is correctly set before fulfilling the request
-        const currentOracle = await flightDelayAPI.oracle();
+        const currentOracle = await flightDelayAPI.getOracle();
         console.log("Current Oracle Address:", currentOracle);
     
         // Ensure the oracle matches the mock oracle address

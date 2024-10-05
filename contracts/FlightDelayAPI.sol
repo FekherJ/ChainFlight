@@ -10,7 +10,7 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
     string public flightStatus; // Holds the status of the flight
     uint256 public flightDelayStatus; // Holds the delay of the flight in minutes
 
-    address public oracle;  // changed for test purposes -> TO SET AS PRIVATE!!!
+    address private oracle;  // changed for test purposes -> TO SET AS PRIVATE!!!
     bytes32 private jobId;
     uint256 private fee;
 
@@ -26,6 +26,11 @@ contract FlightDelayAPI is ChainlinkClient, Ownable {
         oracle = _oracle;       // The MockOracle address can be passed here
         jobId = _jobId;         // Pass a mock jobId for testing
         fee = _fee;             // Pass a fee (like 0.1 LINK in wei)
+    }
+
+    // Getter function to access the oracle for testing purposes
+    function getOracle() external view returns (address) {
+        return oracle;
     }
 
 
