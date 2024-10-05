@@ -57,11 +57,31 @@ describe("InsurancePolicy with Mock Chainlink and FlightDelayAPI", function () {
     it("Should create a policy and emit PolicyCreated event", async function () {
         const premiumAmount = ethers.parseEther("1");
         const payoutAmount = ethers.parseEther("10");
-
-        await expect(insurancePolicy.createPolicy(premiumAmount, payoutAmount, "Flight123", { value: premiumAmount }))
+        
+        // Calculate expected expiration timestamp (30 days from now)
+        const currentTimestamp = (await ethers.provider.getBlock('latest')).timestamp;
+        const expectedExpirationTimestamp = currentTimestamp + (30 * 24 * 60 * 60);  // 30 days in seconds
+        
+        // Create policy and expect the event to include expiration timestamp
+        const tx = await insurancePolicy.createPolicy(premiumAmount, payoutAmount, "Flight123", { value: premiumAmount });
+    
+        // Get the block timestamp at the moment the transaction was mined
+        const receipt = await tx.wait();
+        const blockTimestamp = (await ethers.provider.getBlock(receipt.blockNumber)).timestamp;
+    
+        // Allow a range of ±1 second for the expiration timestamp
+        await expect(tx)
             .to.emit(insurancePolicy, "PolicyCreated")
-            .withArgs(1, (await ethers.getSigners())[0].getAddress(), premiumAmount);
+            .withArgs(1, (await ethers.getSigners())[0].getAddress(), premiumAmount, blockTimestamp + (30 * 24 * 60 * 60));
+        
+        // Verify that the expiration timestamp in the contract is close to the expected one (with tolerance)
+        const actualExpirationTimestamp = blockTimestamp + (30 * 24 * 60 * 60);
+        expect(actualExpirationTimestamp).to.be.closeTo(expectedExpirationTimestamp, 1);  // Allow ±1 second difference
     });
+    
+    
+    
+
 
     it("Should request and fulfill flight delay data using Chainlink", async function () {
         const flightNumber = "504";

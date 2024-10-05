@@ -11,11 +11,15 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
     // Chainlink parameters
     uint256 public flightDelayStatus;  // Store flight delay status here
 
+    uint256 public constant EXPIRATION_PERIOD = 30 days;  // Set policy expiration to 30 days
+    uint256 public constant MIN_PREMIUM = 0.01 ether;
+
+
     address private oracle;
     bytes32 private jobId;
     uint256 private fee;
 
-    uint256 public constant MIN_PREMIUM = 0.01 ether;
+    
 
     // Insurance parameters
     struct Policy {
@@ -24,12 +28,13 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
         uint256 premiumAmount;
         uint256 payoutAmount;
         bool isClaimed;
+        uint256 expirationTimestamp;  // Added expiration timestamp
     }
 
     mapping(uint256 => Policy) public policies;
     uint256 public policyCount;
 
-    event PolicyCreated(uint256 policyId, address policyHolder, uint256 premiumAmount);
+    event PolicyCreated(uint256 policyId, address policyHolder, uint256 premiumAmount, uint256 expirationTimestamp );
     event ClaimPaid(uint256 policyId, address policyHolder, uint256 payoutAmount);
     event FlightDelayDataReceived(bytes32 indexed requestId, uint256 flightDelayStatus);
     event RequestSent(bytes32 indexed requestId);
@@ -61,20 +66,42 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
         // Request flight delay data after creating a policy
         bytes32 requestId = requestFlightDelayData(flightNumber);
 
-        // Increment policy count and create policy in one step
+        // Set expiration date (30 days from now)
+        uint256 expirationTimestamp = block.timestamp + EXPIRATION_PERIOD;
+
+        // Create policy
         Policy memory newPolicy = Policy({
             id: ++policyCount,
             policyHolder: msg.sender,
             premiumAmount: premiumAmount,
             payoutAmount: payoutAmount,
-            isClaimed: false
+            isClaimed: false,
+            expirationTimestamp: expirationTimestamp
         });
 
         policies[policyCount] = newPolicy;  // Single storage write for policy
 
         emit RequestSent(requestId);
-        emit PolicyCreated(policyCount, msg.sender, premiumAmount);
+        emit PolicyCreated(policyCount, msg.sender, premiumAmount, expirationTimestamp);
     }
+
+
+    function _processClaims() internal {
+        for (uint256 i = 1; i <= policyCount; i++) {
+            Policy storage policy = policies[i];
+
+            // Check if the policy is still valid and unclaimed
+            if (!policy.isClaimed && block.timestamp <= policy.expirationTimestamp) {
+                if (flightDelayStatus > 0) {
+                    // Automatically transfer the payout amount to the policyholder
+                    payable(policy.policyHolder).transfer(policy.payoutAmount);
+                    policy.isClaimed = true;
+                    emit ClaimPaid(policy.id, policy.policyHolder, policy.payoutAmount);
+                }
+            }  
+        }
+    }
+
 
     /**
      * @notice Request flight delay data from Chainlink
@@ -94,9 +121,12 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
      * @param _flightDelayStatus The delay status received from the API
      */
     function fulfill(bytes32 _requestId, uint256 _flightDelayStatus) public recordChainlinkFulfillment(_requestId) {
+
         if (_flightDelayStatus > 0) {
             flightDelayStatus = _flightDelayStatus;
             emit FlightDelayDataReceived(_requestId, _flightDelayStatus);
+            _processClaims();  // Automatically process claims after fulfilling the request
+
         } else {
             emit NoDelayReported(_requestId);  // NEW event for handling no delay reported
         }
@@ -113,6 +143,6 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
     // This allows the contract to receive Ether even if no function is called explicitly
     receive() external payable {
         // You can customize this function to log an event or handle the funds as needed.
-        
+
     }
 }
