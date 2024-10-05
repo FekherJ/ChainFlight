@@ -15,6 +15,8 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
     bytes32 private jobId;
     uint256 private fee;
 
+    uint256 public constant MIN_PREMIUM = 0.01 ether;
+
     // Insurance parameters
     struct Policy {
         uint256 id;
@@ -52,14 +54,25 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
      * @param flightNumber The flight number for the policy
      */
     function createPolicy(uint256 premiumAmount, uint256 payoutAmount, string memory flightNumber) external payable {
+
         require(msg.value == premiumAmount, "Incorrect premium sent");
+        require (premiumAmount >= MIN_PREMIUM,"Premium too low");
 
         // Request flight delay data after creating a policy
         bytes32 requestId = requestFlightDelayData(flightNumber);
-        emit RequestSent(requestId);
 
-        policyCount++;
-        policies[policyCount] = Policy(policyCount, msg.sender, premiumAmount, payoutAmount, false);
+        // Increment policy count and create policy in one step
+        Policy memory newPolicy = Policy({
+            id: ++policyCount,
+            policyHolder: msg.sender,
+            premiumAmount: premiumAmount,
+            payoutAmount: payoutAmount,
+            isClaimed: false
+        });
+
+        policies[policyCount] = newPolicy;  // Single storage write for policy
+
+        emit RequestSent(requestId);
         emit PolicyCreated(policyCount, msg.sender, premiumAmount);
     }
 
@@ -95,5 +108,11 @@ contract InsurancePolicy is ChainlinkClient, Ownable {
     function withdrawLink() external onlyOwner {
         LinkTokenInterface link = LinkTokenInterface(_chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
+    }
+
+    // This allows the contract to receive Ether even if no function is called explicitly
+    receive() external payable {
+        // You can customize this function to log an event or handle the funds as needed.
+        
     }
 }
